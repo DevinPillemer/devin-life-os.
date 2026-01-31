@@ -3,6 +3,7 @@ import { fetchMultipleStreams } from '@/lib/feedly';
 import { aggregateNews } from '@/lib/aggregate';
 import { summarizeGroups } from '@/lib/summarize';
 import { getConfig, validateConfig } from '@/lib/config';
+import { getMockNewsResponse, isDemoMode } from '@/lib/mock-data';
 import { NewsAPIResponse, StreamError, FeedlyItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,20 @@ export async function GET(request: NextRequest) {
   const topN = parseInt(searchParams.get('topN') || '20', 10);
   const smartGroupingParam = searchParams.get('smartGrouping');
   const smartSummaryParam = searchParams.get('smartSummary');
+
+  // Check if we should use demo mode (no credentials configured)
+  if (isDemoMode()) {
+    console.log('Running in DEMO MODE - using mock data');
+    const mockResponse = getMockNewsResponse(topN);
+    // Add demo mode indicator to metadata
+    return NextResponse.json({
+      ...mockResponse,
+      metadata: {
+        ...mockResponse.metadata,
+        demoMode: true,
+      },
+    });
+  }
 
   const config = getConfig();
 
