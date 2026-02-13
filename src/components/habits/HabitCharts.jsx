@@ -1,0 +1,4 @@
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts'
+const lineData=[{d:'Mon',c:8},{d:'Tue',c:10},{d:'Wed',c:9},{d:'Thu',c:11},{d:'Fri',c:7},{d:'Sat',c:12},{d:'Sun',c:10}]
+const barData=[{name:'Health',p:120},{name:'Spiritual',p:70},{name:'Productivity',p:90},{name:'Learning',p:85},{name:'Lifestyle',p:40}]
+export default function HabitCharts(){return <div className="grid gap-3 md:grid-cols-2"><div className="card h-64 p-2"><ResponsiveContainer><LineChart data={lineData}><XAxis dataKey="d"/><YAxis/><Tooltip/><Line dataKey="c" stroke="#14b8a6"/></LineChart></ResponsiveContainer></div><div className="card h-64 p-2"><ResponsiveContainer><BarChart data={barData}><XAxis dataKey="name"/><YAxis/><Tooltip/><Bar dataKey="p" fill="#10b981"/></BarChart></ResponsiveContainer></div></div>}
