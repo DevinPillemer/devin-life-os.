@@ -1,7 +1,20 @@
-import { Button } from '@/components/ui/button'
-import StatHeader from '@/components/health/StatHeader'
-import PerformanceCards from '@/components/health/PerformanceCards'
-import IncentiveTable from '@/components/health/IncentiveTable'
-import WeekTimeline from '@/components/health/WeekTimeline'
+import { Card } from '@/components/ui/card'
+import { HEALTH_DATA, INCENTIVE_CONFIG } from '@/data/seedData'
 
-export default function HealthPage(){return <div className="space-y-4"><div className="flex justify-between"><h2 className="text-2xl font-bold">Health</h2><Button>Sync Google Sheet</Button></div><StatHeader/><PerformanceCards/><div className="card p-4"><IncentiveTable/></div><WeekTimeline/><div className="card p-4">ISO week summary (Mon-Sun) with Jan 4 anchor implemented in data utils.</div></div>}
+export default function HealthPage() {
+  const config = INCENTIVE_CONFIG.sections.health
+
+  return <div className="space-y-4">
+    <h2 className="text-2xl font-bold">Health</h2>
+    <p className="text-sm text-gray-300">Health incentive: ₪{INCENTIVE_CONFIG.healthRate} per session • ₪{config.base} base + ₪{config.accelerator} accelerator / month.</p>
+    <div className="grid gap-3 md:grid-cols-2">
+      {HEALTH_DATA.map(week => (
+        <Card key={week.weekId}>
+          <p className="font-semibold">{week.weekId}</p>
+          <p>Swims: {week.swims} • HIIT: {week.hiit}</p>
+          <p>Incentive value: ₪{week.incentiveValue}</p>
+        </Card>
+      ))}
+    </div>
+  </div>
+}
