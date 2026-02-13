@@ -1,0 +1,2 @@
+import { useLocalStorage } from '@/hooks/useLocalStorage'
+export default function BudgetCheckTracker() { const [weeks,setWeeks]=useLocalStorage('budget-weeks',[false,false,false,false]); return <div className="grid grid-cols-4 gap-2">{weeks.map((w,i)=><label key={i} className="card p-2 text-sm"><input type="checkbox" checked={w} onChange={()=>setWeeks(weeks.map((x,idx)=>idx===i?!x:x))}/> Week {i+1}</label>)}</div> }
