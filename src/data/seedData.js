@@ -98,8 +98,59 @@ export const COURSES = [
 ]
 
 export const GOALS = [
-  { id: 'goal-1', title: 'Get a good pair of tefillin', area: 'Learning', status: 'todo', credits: 10 }, { id: 'goal-2', title: 'Goals for the new year', area: 'Learning', status: 'in_progress', credits: 10 }, { id: 'goal-3', title: 'Request UK police certificate', area: 'Learning', status: 'done', credits: 10 }, { id: 'goal-4', title: 'Green card', area: 'Learning', status: 'in_progress', credits: 10 }, { id: 'goal-5', title: "Mom's apartment in Israel", area: 'Family_Life', status: 'in_progress', credits: 10 }, { id: 'goal-6', title: 'Set Interview Lior Panahi', area: 'Family_Life', status: 'in_progress', credits: 10 }, { id: 'goal-7', title: 'Claude Code', area: 'Learning', status: 'todo', credits: 10 }, { id: 'goal-8', title: 'Order Fan / Watch (Amazon)', area: 'Learning', status: 'in_progress', credits: 10 }, { id: 'goal-9', title: 'Fan refund (Agent call)', area: 'Finance', status: 'in_progress', credits: 10 }, { id: 'goal-10', title: 'Budget: Personal & Family', area: 'Finance', status: 'done', credits: 10 }, { id: 'goal-11', title: 'Mita Party <> Logistics', area: 'Learning', status: 'done', credits: 10 }, { id: 'goal-12', title: 'fup: Parking Ticket', area: 'Finance', status: 'done', credits: 10 }, { id: 'goal-13', title: 'Rami Levy: Sim & Account', area: 'Finance', status: 'done', credits: 10 }, { id: 'goal-14', title: 'Send bank details to employer', area: 'Career', status: 'done', credits: 10 }, { id: 'goal-15', title: 'AI: Subscriptions: Review', area: 'Finance', status: 'in_progress', credits: 10 }, { id: 'goal-16', title: "What's the plan, IL vs US", area: 'Career', status: 'done', credits: 10 }, { id: 'goal-17', title: 'Fun: Nest: 1k deposit', area: 'Family_Life', status: 'done', credits: 10 }, { id: 'goal-18', title: 'Next Move: AE <> Job search', area: 'Career', status: 'in_progress', credits: 10 }, { id: 'goal-19', title: 'Fup: Lease', area: 'Family_Life', status: 'in_progress', credits: 10 }, { id: 'goal-20', title: 'Financial Consulting (done)', area: 'Family_Life', status: 'done', credits: 10 }, { id: 'goal-21', title: 'US: Itinerary Planning', area: 'Family_Life', status: 'in_progress', credits: 10 }, { id: 'goal-22', title: 'Buy USD for trip August', area: 'Finance', status: 'in_progress', credits: 10 }, { id: 'goal-23', title: 'Website/ WP', area: 'Learning', status: 'todo', credits: 10 }, { id: 'goal-24', title: 'Sunday Morning Challenge', area: 'Learning', status: 'in_progress', credits: 10 }
+  { id: 'g1', title: 'Next Move: AE <> Job Scraper', area: 'Career', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 10 },
+  { id: 'g2', title: 'Set Interview Lior Passport in Queens', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g3', title: 'Date nights 1/2 weeks', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Quick', credits: 10 },
+  { id: 'g4', title: 'Fup: Lease', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Quick', credits: 10 },
+  { id: 'g5', title: 'Therapy 1x / 2 weeks', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Quick', credits: 10 },
+  { id: 'g6', title: 'Airbnb Our Place!', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g7', title: 'Buffer to 20k Savings (liquid)', area: 'Finance', status: 'done', priority: 'High', gauge: 'Quick', credits: 10 },
+  { id: 'g8', title: 'Plan w/ Cash/ Invest', area: 'Finance', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g9', title: 'Goals for the new year', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 10 },
+  { id: 'g10', title: 'Green card', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 10 },
+  { id: 'g11', title: 'Get a good pair of tefillin', area: 'Individual', status: 'todo', priority: 'High', gauge: 'Deep', credits: 10 },
+  { id: 'g12', title: 'Body Fat <2% 89kgs', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g13', title: 'Claude Code', area: 'AI_Skills', status: 'todo', priority: 'High', gauge: 'Deep', credits: 10 },
+  { id: 'g14', title: 'VAPI agents', area: 'AI_Skills', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 },
+  { id: 'g15', title: 'Daily Workflow Automations', area: 'AI_Skills', status: 'todo', priority: 'Medium', gauge: 'Deep', credits: 10 },
+  { id: 'g16', title: 'Floopify: Fix', area: 'AI_Skills', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 },
+  { id: 'g17', title: 'Sunday Morning Chavruta', area: 'Social_Community', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g18', title: 'Volunteer', area: 'Social_Community', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g19', title: 'US: Itinerary Planning', area: 'Family_Life', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 },
+  { id: 'g20', title: 'Mom and Tami4', area: 'Family_Life', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 },
+  { id: 'g21', title: 'Moms apartment in Tel Aviv', area: 'Family_Life', status: 'in_progress', priority: 'Medium', gauge: 'Deep', credits: 10 },
+  { id: 'g22', title: 'Rami Levy: Sim & Activate', area: 'Finance', status: 'done', priority: 'Medium', gauge: 'Quick', credits: 10 },
+  { id: 'g23', title: 'Buy USD for trip August', area: 'Finance', status: 'in_progress', priority: 'High', gauge: 'Quick', credits: 10 },
+  { id: 'g24', title: 'Automations: FB/ etc.', area: 'AI_Skills', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 }
 ]
+
+export const BUDGET_DATA = {
+  'Feb-26': {
+    income: 18000,
+    charities: 1800,
+    transfers: { pension: 1800, hishtalmut: 900 },
+    loans: { car: 1650, apartment: 3200 },
+    investments: 1000,
+    expenses: {
+      Groceries: 2500,
+      Dining: 800,
+      Transport: 400,
+      Entertainment: 300,
+      Shopping: 500,
+      Health: 200,
+      Subscriptions: 350,
+      Misc: 300
+    },
+    netSavings: 4200,
+    endBalance: 15000,
+    weeks: [
+      { weekNum: 1, budget: 1500, spent: 1420, onTrack: true },
+      { weekNum: 2, budget: 1500, spent: 1380, onTrack: true },
+      { weekNum: 3, budget: 1500, spent: 1650, onTrack: false },
+      { weekNum: 4, budget: 1500, spent: 1200, onTrack: true }
+    ]
+  }
+}
 
 export const INCENTIVE_CONFIG = { totalBaseBudget: 1000, totalMaxBudget: 1200, sections: { learning: { base: 200, accelerator: 40, max: 240 }, dailyHabits: { base: 200, accelerator: 40, max: 240 }, health: { base: 200, accelerator: 40, max: 240 }, goals: { base: 200, accelerator: 40, max: 240 }, finance: { base: 200, accelerator: 40, max: 240 } }, healthRate: 5, learningRate: 10, goalsRate: 10 }
 
