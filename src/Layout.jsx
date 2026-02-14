@@ -3,7 +3,7 @@ import { Wallet, BookOpen, Repeat, HeartPulse, Target, Landmark } from 'lucide-r
 
 const nav = [
   { to: '/walletdashboard', label: 'Wallet', icon: Wallet },
-  { to: '/dashboard', label: 'Learning', icon: BookOpen },
+  { to: '/learning', label: 'Learning', icon: BookOpen },
   { to: '/dailyhabits', label: 'Daily Habits', icon: Repeat },
   { to: '/health', label: 'Health', icon: HeartPulse },
   { to: '/goalstracker', label: 'Goals', icon: Target }
