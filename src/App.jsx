@@ -13,6 +13,12 @@ import CreateCoursePage from '@/pages/CreateCoursePage'
 import DailyQuizPage from '@/pages/DailyQuizPage'
 import CertificatePage from '@/pages/CertificatePage'
 import ProgressPage from '@/pages/ProgressPage'
+import LearningHomePage from '@/pages/learning/LearningHomePage'
+import LearningCourseOverviewPage from '@/pages/learning/LearningCourseOverviewPage'
+import LearningSessionPage from '@/pages/learning/LearningSessionPage'
+import LearningQuizPage from '@/pages/learning/LearningQuizPage'
+import LearningExercisePage from '@/pages/learning/LearningExercisePage'
+import LearningResultsPage from '@/pages/learning/LearningResultsPage'
 
 export default function App() {
   return (
@@ -31,6 +37,12 @@ export default function App() {
         <Route path="dailyquiz" element={<DailyQuizPage />} />
         <Route path="certificate/:id" element={<CertificatePage />} />
         <Route path="progress" element={<ProgressPage />} />
+        <Route path="learning" element={<LearningHomePage />} />
+        <Route path="learning/course/:courseId" element={<LearningCourseOverviewPage />} />
+        <Route path="learning/course/:courseId/session" element={<LearningSessionPage />} />
+        <Route path="learning/course/:courseId/quiz" element={<LearningQuizPage />} />
+        <Route path="learning/course/:courseId/exercise" element={<LearningExercisePage />} />
+        <Route path="learning/course/:courseId/results" element={<LearningResultsPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
