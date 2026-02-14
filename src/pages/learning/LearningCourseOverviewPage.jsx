@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, RotateCcw } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import LearningProgressBar from '@/components/learning/ProgressBar'
 import { getProgressForCourse } from '@/data/learningModule'
+import { COURSES } from '@/data/seedData'
+import { generateCourse } from '@/services/llmService'
 
 const read = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)) } catch { return fallback }
@@ -14,13 +16,44 @@ export default function LearningCourseOverviewPage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
   const [showGlossary, setShowGlossary] = useState(false)
+  const [difficulty, setDifficulty] = useState('beginner')
+  const [focusAreas, setFocusAreas] = useState('')
+  const [isRegenerating, setIsRegenerating] = useState(false)
   const courses = read('floopify_courses', [])
   const sessions = read('floopify_sessions', {})
-  const selected = courses.find((item) => item.course.id === courseId)?.course
+  const selectedEntry = courses.find((item) => item.course.id === courseId)
+  const selected = selectedEntry?.course
 
   const progress = useMemo(() => selected ? getProgressForCourse(selected, sessions[courseId]) : { percent: 0, completedSections: 0, totalSections: 0 }, [selected, sessions, courseId])
 
   if (!selected) return <Card className="border-slate-800 bg-slate-900 p-6 text-slate-200">Course not found. Go to /learning and generate one.</Card>
+
+  const regenerate = async () => {
+    const seedBookId = selectedEntry?.seedBookId
+    if (!seedBookId) return
+    const sourceBook = COURSES.find((book) => book.id === seedBookId)
+    if (!sourceBook) return
+
+    setIsRegenerating(true)
+    const { courseJson, meta } = await generateCourse({
+      bookData: {
+        title: sourceBook.title,
+        author: sourceBook.author,
+        modules: sourceBook.modules,
+        key_insights: sourceBook.modules.flatMap((module) => module.key_insights || []),
+        source_title: `${sourceBook.title} by ${sourceBook.author}`
+      },
+      difficulty,
+      focusAreas,
+      forceRegenerate: true
+    }, 'book')
+
+    const nextCourses = courses.filter((item) => item.seedBookId !== seedBookId)
+    nextCourses.push({ ...courseJson, seedBookId, llmSource: meta.source, generatedAt: new Date().toISOString() })
+    localStorage.setItem('floopify_courses', JSON.stringify(nextCourses))
+    setIsRegenerating(false)
+    navigate(`/learning/course/${courseJson.course.id}`)
+  }
 
   return (
     <div className="space-y-6">
@@ -34,8 +67,30 @@ export default function LearningCourseOverviewPage() {
         <div className="mt-4">
           <LearningProgressBar value={progress.percent} label={`${progress.completedSections}/${progress.totalSections} sections complete`} />
         </div>
-        <Button onClick={() => navigate(`/learning/course/${courseId}/session`)} className="mt-5 bg-emerald-500 text-slate-950 hover:bg-emerald-400">Start Learning</Button>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Button onClick={() => navigate(`/learning/course/${courseId}/session`)} className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">Start Learning</Button>
+          {selectedEntry?.seedBookId && (
+            <Button variant="outline" onClick={regenerate} disabled={isRegenerating}>
+              {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}Regenerate Course
+            </Button>
+          )}
+        </div>
       </Card>
+
+      {selectedEntry?.seedBookId && (
+        <Card className="border-slate-800 bg-slate-900/70 p-5">
+          <h2 className="text-lg font-bold text-white">Customization</h2>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+            <input value={focusAreas} onChange={(e) => setFocusAreas(e.target.value)} placeholder="Focus areas (e.g. leadership, execution, habits)" className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100" />
+          </div>
+          <p className="mt-2 text-xs text-slate-400">Regeneration keeps your library cache updated and replaces the prior generated version for this book.</p>
+        </Card>
+      )}
 
       <Card className="border-slate-800 bg-slate-900/70 p-5">
         <h2 className="text-lg font-bold text-white">Learning Objectives</h2>

@@ -7,6 +7,7 @@ import QuestionCard from '@/components/learning/QuestionCard'
 import FeedbackCard from '@/components/learning/FeedbackCard'
 import LearningProgressBar from '@/components/learning/ProgressBar'
 import { getNextQuestion, gradeAnswer } from '@/data/learningModule'
+import { evaluateAnswer } from '@/services/llmService'
 import { useLearningEvents } from '@/hooks/useLearningEvents'
 
 const read = (key, fallback) => {
@@ -44,6 +45,7 @@ export default function LearningSessionPage() {
   const [session, setSession] = useState(existingSession)
   const [feedback, setFeedback] = useState(null)
   const [showRemediation, setShowRemediation] = useState(false)
+  const [isEvaluating, setIsEvaluating] = useState(false)
 
   const chapter = selected?.course_outline[session.currentChapterIndex]
   const section = chapter?.sections[session.currentSectionIndex]
@@ -61,11 +63,20 @@ export default function LearningSessionPage() {
     setSession(next)
   }
 
-  const handleSubmitAnswer = (userAnswer) => {
+  const handleSubmitAnswer = async (userAnswer) => {
     if (!question) return
-    const result = gradeAnswer(question, userAnswer)
+    setIsEvaluating(true)
+    const llmResult = await evaluateAnswer(selected, session, userAnswer)
+    const localResult = gradeAnswer(question, userAnswer)
+    const result = {
+      ...localResult,
+      isCorrect: llmResult?.evaluation?.is_correct ?? localResult.isCorrect,
+      feedback: llmResult?.evaluation?.feedback || localResult.feedback,
+      bullets: llmResult?.evaluation?.rationale_bullets || localResult.bullets
+    }
+
     setFeedback(result)
-    trackEvent('question_answered', { courseId, questionId: question.question_id, isCorrect: result.isCorrect })
+    trackEvent('question_answered', { courseId, questionId: question.question_id, isCorrect: result.isCorrect, evaluationSource: llmResult?.source || 'local' })
 
     const updated = {
       ...session,
@@ -76,7 +87,11 @@ export default function LearningSessionPage() {
       ]
     }
     persistSession(updated)
-    setShowRemediation(!result.isCorrect && updated.wrongStreak >= 2)
+    setShowRemediation(Boolean(llmResult?.micro_remediation) || (!result.isCorrect && updated.wrongStreak >= 2))
+    if (llmResult?.micro_remediation) {
+      setFeedback((prev) => ({ ...prev, remediation: llmResult.micro_remediation }))
+    }
+    setIsEvaluating(false)
   }
 
   const advance = () => {
@@ -129,17 +144,19 @@ export default function LearningSessionPage() {
         {section.content_blocks.map((block, idx) => <ContentBlock key={`${section.section_id}-${idx}`} block={block} />)}
       </Card>
 
-      <QuestionCard question={question} onSubmit={handleSubmitAnswer} disabled={!!feedback} />
+      <QuestionCard question={question} onSubmit={handleSubmitAnswer} disabled={!!feedback || isEvaluating} submitLabel={isEvaluating ? 'Evaluating...' : 'Submit Answer'} />
       <FeedbackCard result={feedback} />
 
       {showRemediation && (
         <Card className="border-amber-400/40 bg-amber-500/10 p-4">
           <p className="font-semibold text-amber-200">Micro-remediation</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-100">
-            <li>Restate the concept in your own words before answering.</li>
-            <li>Look for cue-action-reward sequence in examples.</li>
-            <li>Prefer concrete behavior verbs over abstract goals.</li>
-            <li>Think in daily systems, not one-time effort.</li>
+            {(feedback?.remediation || [
+              'Restate the concept in your own words before answering.',
+              'Look for cue-action-reward sequence in examples.',
+              'Prefer concrete behavior verbs over abstract goals.',
+              'Think in daily systems, not one-time effort.'
+            ]).map((line) => <li key={line}>{line}</li>)}
           </ul>
         </Card>
       )}
