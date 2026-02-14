@@ -47,6 +47,7 @@ export default function LearningResultsPage() {
           <ResultBox title="Quiz Score" value={`${quiz.scorePercent}%`} passed={quiz.passed} />
           <ResultBox title="Exercise Score" value={`${exercise.scorePercent}%`} passed={exercise.passed} />
         </div>
+        <p className="mt-3 text-xs text-slate-400">Evaluation source: quiz ({quiz.source || 'local'}) • exercise ({exercise.source || 'local'})</p>
       </Card>
 
       <Card className="border-slate-800 bg-slate-900/70 p-5">
@@ -66,10 +67,13 @@ export default function LearningResultsPage() {
         <h2 className="text-lg font-semibold text-white">Exercise Rubric Breakdown</h2>
         <div className="mt-3 space-y-2 text-sm">
           {exercise.rubricBreakdown.map((row) => (
-            <p key={row.criterion} className="text-slate-200">{row.criterion}: <span className="text-emerald-300">{row.points}/{row.maxPoints}</span></p>
+            <div key={row.criterion}>
+              <p className="text-slate-200">{row.criterion}: <span className="text-emerald-300">{row.points}/{row.maxPoints}</span></p>
+              {row.feedback ? <p className="text-xs text-slate-400">{row.feedback}</p> : null}
+            </div>
           ))}
         </div>
-        <h3 className="mt-4 font-semibold text-white">Improvement Suggestions</h3>
+        <h3 className="mt-4 font-semibold text-white">LLM Improvement Suggestions</h3>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-300">
           {exercise.suggestions.map((line) => <li key={line}>{line}</li>)}
         </ul>
