@@ -109,7 +109,7 @@ export const GOALS = [
   { id: 'g9', title: 'Goals for the new year', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 10 },
   { id: 'g10', title: 'Green Card Approval (Early 2026)', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 20 },
   { id: 'g11', title: 'Get a good pair of tefillin', area: 'Individual', status: 'todo', priority: 'High', gauge: 'Deep', credits: 10 },
-  { id: 'g12', title: 'Body Fat <2% 89kgs', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g12', title: '10% Body Fat + Visible Abs (89kg)', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 15 },
   { id: 'g13', title: 'Claude Code', area: 'AI_Skills', status: 'todo', priority: 'High', gauge: 'Deep', credits: 10 },
   { id: 'g14', title: 'VAPI agents', area: 'AI_Skills', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 },
   { id: 'g15', title: 'Daily Workflow Automations', area: 'AI_Skills', status: 'todo', priority: 'Medium', gauge: 'Deep', credits: 10 },
