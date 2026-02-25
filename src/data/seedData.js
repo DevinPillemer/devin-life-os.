@@ -98,7 +98,7 @@ export const COURSES = [
 ]
 
 export const GOALS = [
-  { id: 'g1', title: 'Next Move: AE <> Job Scraper', area: 'Career', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 10 },
+  { id: 'g1', title: 'Panaya SDR Team to 18 Target (30 meetings)', area: 'Career', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 15 },
   { id: 'g2', title: 'Set Interview Lior Passport in Queens', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
   { id: 'g3', title: 'Date nights 1/2 weeks', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Quick', credits: 10 },
   { id: 'g4', title: 'Fup: Lease', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Quick', credits: 10 },
