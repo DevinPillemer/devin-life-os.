@@ -108,5 +108,11 @@ export default function DailyHabitsPage() {
         ))}
       </Card>
     ))}
+
+    {/* Food Profile Integration - Speed Focused */}
+    <div className="mt-8">
+      <h3 className="text-xl font-semibold mb-4 text-gray-100">🚀 Food Profile (Speed Focus)</h3>
+      <FoodProfileCard syncData={syncData} />
+    </div>
   </div>
 }
