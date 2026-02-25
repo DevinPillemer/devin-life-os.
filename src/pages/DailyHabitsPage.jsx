@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { HABIT_CATEGORY_MAP, INCENTIVE_CONFIG } from '@/data/seedData'
+import FoodProfileCard from '@/components/FoodProfileCard'
 
 const badgeColors = {
   Health: 'bg-green-600/20 text-green-300',
