@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { HEALTH_DATA, INCENTIVE_CONFIG } from '@/data/seedData'
+import FoodProfileCard from '@/components/FoodProfileCard'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 const DEFAULT_AFTER_SECONDS = 56 * 24 * 60 * 60
