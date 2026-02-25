@@ -116,7 +116,7 @@ export const GOALS = [
   { id: 'g16', title: 'Floopify: Fix', area: 'AI_Skills', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 },
   { id: 'g17', title: 'Sunday Morning Chavruta', area: 'Social_Community', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
   { id: 'g18', title: 'Volunteer', area: 'Social_Community', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
-  { id: 'g19', title: 'US: Itinerary Planning', area: 'Family_Life', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 },
+  { id: 'g19', title: 'Miami Relocation Planning (Post Green Card)', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 20 },
   { id: 'g20', title: 'Mom and Tami4', area: 'Family_Life', status: 'in_progress', priority: 'Medium', gauge: 'Standard', credits: 10 }, { id: 'g21', title: 'Daily Nutrition Profile: 150g Protein', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 15 }, { id: 'g22', title: 'Meal Timing Optimization', area: 'Individual', status: 'in_progress', priority: 'Medium', gauge: 'Quick', credits: 12 },
   { id: 'g21', title: 'Moms apartment in Tel Aviv', area: 'Family_Life', status: 'in_progress', priority: 'Medium', gauge: 'Deep', credits: 10 },
   { id: 'g22', title: 'Rami Levy: Sim & Activate', area: 'Finance', status: 'done', priority: 'Medium', gauge: 'Quick', credits: 10 },
