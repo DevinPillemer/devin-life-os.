@@ -105,7 +105,7 @@ export const GOALS = [
   { id: 'g5', title: 'Therapy 1x / 2 weeks', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Quick', credits: 10 },
   { id: 'g6', title: 'Airbnb Our Place!', area: 'Family_Life', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
   { id: 'g7', title: 'Buffer to 20k Savings (liquid)', area: 'Finance', status: 'done', priority: 'High', gauge: 'Quick', credits: 10 },
-  { id: 'g8', title: 'Plan w/ Cash/ Invest', area: 'Finance', status: 'in_progress', priority: 'High', gauge: 'Standard', credits: 10 },
+  { id: 'g8', title: 'Miami Real Estate Portfolio (10-15yr FI Plan)', area: 'Finance', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 20 },
   { id: 'g9', title: 'Goals for the new year', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 10 },
   { id: 'g10', title: 'Green Card Approval (Early 2026)', area: 'Individual', status: 'in_progress', priority: 'High', gauge: 'Deep', credits: 20 },
   { id: 'g11', title: 'Get a good pair of tefillin', area: 'Individual', status: 'todo', priority: 'High', gauge: 'Deep', credits: 10 },
