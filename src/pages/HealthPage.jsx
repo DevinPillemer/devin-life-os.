@@ -169,5 +169,11 @@ export default function HealthPage() {
         </Card>
       ))}
     </div>
+
+    {/* Nutrition Performance Integration */}
+    <div className="mt-8">
+      <h3 className="text-xl font-semibold mb-4 text-gray-100">⚡ Nutrition Performance (Speed Optimized)</h3>
+      <FoodProfileCard syncData={{ journal: [] }} />
+    </div>
   </div>
 }
