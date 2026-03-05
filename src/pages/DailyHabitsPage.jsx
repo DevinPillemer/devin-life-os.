@@ -7,11 +7,11 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { HABIT_CATEGORY_MAP, INCENTIVE_CONFIG } from '@/data/seedData'
 
 const categoryColors = {
-  Health: { badge: 'bg-green-600/20 text-green-300 border border-green-600/20', dot: 'bg-green-400', header: 'text-green-400' },
+  Health:    { badge: 'bg-green-600/20 text-green-300 border border-green-600/20',   dot: 'bg-green-400',  header: 'text-green-400'  },
   Spiritual: { badge: 'bg-purple-600/20 text-purple-300 border border-purple-600/20', dot: 'bg-purple-400', header: 'text-purple-400' },
-  Focus: { badge: 'bg-blue-600/20 text-blue-300 border border-blue-600/20', dot: 'bg-blue-400', header: 'text-blue-400' },
-  Learning: { badge: 'bg-orange-600/20 text-orange-300 border border-orange-600/20', dot: 'bg-orange-400', header: 'text-orange-400' },
-  Lifestyle: { badge: 'bg-pink-600/20 text-pink-300 border border-pink-600/20', dot: 'bg-pink-400', header: 'text-pink-400' }
+  Focus:     { badge: 'bg-blue-600/20 text-blue-300 border border-blue-600/20',       dot: 'bg-blue-400',   header: 'text-blue-400'   },
+  Learning:  { badge: 'bg-orange-600/20 text-orange-300 border border-orange-600/20', dot: 'bg-orange-400', header: 'text-orange-400' },
+  Lifestyle: { badge: 'bg-pink-600/20 text-pink-300 border border-pink-600/20',       dot: 'bg-pink-400',   header: 'text-pink-400'   }
 }
 
 function StatPill({ icon: Icon, label, value, color }) {
@@ -28,38 +28,55 @@ function StatPill({ icon: Icon, label, value, color }) {
 
 export default function DailyHabitsPage() {
   const [lastSync, setLastSync] = useLocalStorage('habitify-last-sync', null)
-  const [syncData, setSyncData] = useLocalStorage('habitify-sync-data', { habits: [], journal: [] })
+  // habits: array from Habitify API with name + status fields
+  const [habits, setHabits] = useLocalStorage('habitify-habits-data', [])
   const [syncError, setSyncError] = useState(null)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [rawDebug, setRawDebug] = useState(null)
 
   const apiKey = import.meta.env.VITE_HABITIFY_API_KEY
 
-  const entries = Object.entries(HABIT_CATEGORY_MAP)
-
+  // Build a set of completed habit names from the live API data
   const completedHabitNames = useMemo(() => {
-    const normalize = value => (value || '').trim().toLowerCase()
+    const normalize = s => (s || '').trim().toLowerCase()
     return new Set(
-      (syncData?.journal || [])
-        .filter(entry => entry?.status === 'completed')
-        .map(entry => normalize(
-          entry?.habit_name || entry?.name || entry?.habit?.name || entry?.task_name || entry?.title
-        ))
+      habits
+        .filter(h => h.status === 'completed' || h.status === 'passed' || h.is_done === true)
+        .map(h => normalize(h.name || h.habit_name || h.title))
         .filter(Boolean)
     )
-  }, [syncData])
+  }, [habits])
+
+  // All habits from our category map
+  const entries = Object.entries(HABIT_CATEGORY_MAP)
+
+  // Check which ones the API returned (for cross-referencing)
+  const apiHabitNames = useMemo(() => {
+    const normalize = s => (s || '').trim().toLowerCase()
+    return new Set(habits.map(h => normalize(h.name || h.habit_name || h.title)).filter(Boolean))
+  }, [habits])
 
   const grouped = entries.reduce((acc, [habit, meta]) => {
     if (!acc[meta.category]) acc[meta.category] = []
-    const isCompleted = completedHabitNames.has(habit.trim().toLowerCase())
-    acc[meta.category].push({ habit, isCompleted, ...meta })
+    const normalized = habit.trim().toLowerCase()
+    const isCompleted = completedHabitNames.has(normalized)
+    const isInAPI = apiHabitNames.has(normalized)
+    acc[meta.category].push({ habit, isCompleted, isInAPI, ...meta })
     return acc
   }, {})
 
-  const dailyMaxPoints = entries.reduce((sum, [, meta]) => sum + meta.points, 0)
+  // Only count habits that the API returned
+  const apiEntries = entries.filter(([habit]) => apiHabitNames.has(habit.trim().toLowerCase()))
+  const dailyMaxPoints = apiEntries.length > 0
+    ? apiEntries.reduce((sum, [, meta]) => sum + meta.points, 0)
+    : entries.reduce((sum, [, meta]) => sum + meta.points, 0)
+
   const completedPoints = entries
     .filter(([habit]) => completedHabitNames.has(habit.trim().toLowerCase()))
     .reduce((sum, [, meta]) => sum + meta.points, 0)
-  const completedCount = entries.filter(([habit]) => completedHabitNames.has(habit.trim().toLowerCase())).length
+
+  const completedCount = completedHabitNames.size
+  const totalFromAPI = habits.length
   const pct = dailyMaxPoints > 0 ? Math.round((completedPoints / dailyMaxPoints) * 100) : 0
 
   const monthlyBase = INCENTIVE_CONFIG.sections.dailyHabits.base
@@ -75,41 +92,45 @@ export default function DailyHabitsPage() {
       return
     }
     setSyncError(null)
+    setRawDebug(null)
     setIsSyncing(true)
     try {
-      // Use UTC offset for Israel timezone (+03:00)
       const todayDate = format(new Date(), 'yyyy-MM-dd')
-      const targetDate = `${todayDate}T00:00:00+03:00`
+      // The correct Habitify API: GET /habits?target_date=YYYY-MM-DDTHH:mm:ss
+      // This returns each habit with its status for that specific date
+      const targetDate = `${todayDate}T00:00:00`
+      const res = await fetch(
+        `https://api.habitify.me/habits?target_date=${encodeURIComponent(targetDate)}`,
+        { headers: { Authorization: apiKey } }
+      )
 
-      const [habitsRes, journalRes] = await Promise.all([
-        fetch('https://api.habitify.me/habits', {
-          headers: { Authorization: apiKey }
-        }),
-        fetch(`https://api.habitify.me/journal?target_date=${encodeURIComponent(targetDate)}`, {
-          headers: { Authorization: apiKey }
-        })
-      ])
+      const responseText = await res.text()
 
-      if (!habitsRes.ok) {
-        const errText = await habitsRes.text()
-        throw new Error(`Habitify habits API failed (${habitsRes.status}): ${errText.substring(0, 100)}`)
-      }
-      if (!journalRes.ok) {
-        const errText = await journalRes.text()
-        throw new Error(`Habitify journal API failed (${journalRes.status}): ${errText.substring(0, 100)}`)
+      if (!res.ok) {
+        setRawDebug(`HTTP ${res.status}: ${responseText.substring(0, 200)}`)
+        throw new Error(`Habitify API error (${res.status}): ${responseText.substring(0, 100)}`)
       }
 
-      const habitsPayload = await habitsRes.json()
-      const journalPayload = await journalRes.json()
-
-      if (!habitsPayload?.data && !Array.isArray(habitsPayload)) {
-        throw new Error('Unexpected habits response format')
+      let payload
+      try {
+        payload = JSON.parse(responseText)
+      } catch {
+        setRawDebug(`Non-JSON response: ${responseText.substring(0, 200)}`)
+        throw new Error('Could not parse Habitify response as JSON')
       }
 
-      setSyncData({
-        habits: habitsPayload?.data || habitsPayload || [],
-        journal: journalPayload?.data || journalPayload || []
-      })
+      const habitsArray = Array.isArray(payload) ? payload : (payload?.data || [])
+
+      if (!Array.isArray(habitsArray) || habitsArray.length === 0) {
+        setRawDebug(`Parsed payload keys: ${Object.keys(payload || {}).join(', ')} | Raw: ${responseText.substring(0, 300)}`)
+        throw new Error(`No habits returned. Got: ${Object.keys(payload || {}).join(', ')}`)
+      }
+
+      // Show debug info about what we got
+      const completedOnes = habitsArray.filter(h => h.status === 'completed' || h.status === 'passed' || h.is_done === true)
+      setRawDebug(`Got ${habitsArray.length} habits, ${completedOnes.length} completed. Sample: ${JSON.stringify(habitsArray[0]).substring(0, 150)}`)
+
+      setHabits(habitsArray)
       setLastSync(new Date().toISOString())
     } catch (error) {
       setSyncError(error.message || 'Failed to sync Habitify data.')
@@ -129,6 +150,7 @@ export default function DailyHabitsPage() {
           <p className="text-xs text-slate-400 mt-0.5">
             Last sync: {lastSync ? format(new Date(lastSync), 'PPpp') : 'Never'} &bull;{' '}
             API: {apiKey ? <span className="text-green-400">configured</span> : <span className="text-red-400">missing</span>}
+            {totalFromAPI > 0 && <span className="text-slate-500"> &bull; {totalFromAPI} habits loaded</span>}
           </p>
         </div>
         <Button onClick={handleSync} disabled={isSyncing} className="gap-2">
@@ -139,13 +161,19 @@ export default function DailyHabitsPage() {
 
       {syncError && (
         <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-300">
-          {syncError}
+          <strong>Error:</strong> {syncError}
+        </div>
+      )}
+
+      {rawDebug && (
+        <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-3 text-xs text-slate-400 font-mono break-all">
+          <strong className="text-slate-300">Debug:</strong> {rawDebug}
         </div>
       )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatPill icon={CheckCircle2} label="Completed" value={`${completedCount}/${entries.length}`} color="text-green-400" />
+        <StatPill icon={CheckCircle2} label="Completed" value={totalFromAPI > 0 ? `${completedCount}/${totalFromAPI}` : `0/--`} color="text-green-400" />
         <StatPill icon={Zap} label="Points Today" value={`${completedPoints}/${dailyMaxPoints}`} color="text-amber-400" />
         <StatPill icon={Trophy} label="Score" value={`${pct}%`} color={pct >= 80 ? 'text-teal-400' : pct >= 50 ? 'text-yellow-400' : 'text-slate-400'} />
         <StatPill icon={Clock} label="Monthly Reward" value={`₪${monthlyReward}`} color="text-teal-400" />
@@ -160,9 +188,9 @@ export default function DailyHabitsPage() {
         <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-500 rounded-full ${
-              pct >= 90 ? 'bg-gradient-to-r from-teal-500 to-emerald-400' :
-              pct >= 60 ? 'bg-gradient-to-r from-blue-500 to-teal-500' :
-              'bg-gradient-to-r from-slate-600 to-blue-500'
+              pct >= 90 ? 'bg-gradient-to-r from-teal-500 to-emerald-400'
+                : pct >= 60 ? 'bg-gradient-to-r from-blue-500 to-teal-500'
+                : 'bg-gradient-to-r from-slate-600 to-blue-500'
             }`}
             style={{ width: `${pct}%` }}
           />
@@ -173,15 +201,23 @@ export default function DailyHabitsPage() {
         </div>
       </Card>
 
+      {/* No data state */}
+      {totalFromAPI === 0 && !isSyncing && (
+        <Card className="border border-slate-700 bg-slate-900/40 p-6 text-center">
+          <RefreshCw size={24} className="mx-auto mb-2 text-slate-500" />
+          <p className="text-slate-300 font-medium">No habit data loaded yet</p>
+          <p className="text-slate-500 text-sm mt-1">Click &quot;Sync Now&quot; to fetch today&apos;s habits from Habitify</p>
+        </Card>
+      )}
+
       {/* Habit Categories */}
       <div className="space-y-3">
         {categoryOrder.map(category => {
-          const habits = grouped[category]
-          if (!habits?.length) return null
+          const categoryHabits = grouped[category]
+          if (!categoryHabits?.length) return null
           const colors = categoryColors[category] || categoryColors.Health
-          const catCompleted = habits.filter(h => h.isCompleted).length
-          const catTotal = habits.length
-
+          const catCompleted = categoryHabits.filter(h => h.isCompleted).length
+          const catTotal = categoryHabits.length
           return (
             <Card key={category} className="border border-slate-800 bg-slate-900/60 overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/60">
@@ -197,25 +233,30 @@ export default function DailyHabitsPage() {
                 </div>
               </div>
               <div className="divide-y divide-slate-800/40">
-                {habits.map(({ habit, points, isCompleted }) => (
+                {categoryHabits.map(({ habit, points, isCompleted, isInAPI }) => (
                   <div
                     key={habit}
                     className={`flex items-center justify-between px-4 py-2.5 transition-colors ${
                       isCompleted ? 'bg-green-500/5' : ''
-                    }`}
+                    } ${!isInAPI && totalFromAPI > 0 ? 'opacity-40' : ''}`}
                   >
                     <div className="flex items-center gap-2.5">
                       {isCompleted
                         ? <CheckCircle2 size={15} className="text-green-400 flex-shrink-0" />
-                        : <Circle size={15} className="text-slate-600 flex-shrink-0" />
+                        : <Circle size={15} className={`flex-shrink-0 ${!isInAPI && totalFromAPI > 0 ? 'text-slate-700' : 'text-slate-600'}`} />
                       }
                       <span className={`text-sm ${isCompleted ? 'text-white' : 'text-slate-400'}`}>
                         {habit}
                       </span>
                     </div>
-                    <span className={`text-xs font-medium ${isCompleted ? 'text-green-400' : 'text-slate-500'}`}>
-                      {points} pts
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {!isInAPI && totalFromAPI > 0 && (
+                        <span className="text-xs text-slate-600">not in API</span>
+                      )}
+                      <span className={`text-xs font-medium ${isCompleted ? 'text-green-400' : 'text-slate-500'}`}>
+                        {points} pts
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -223,6 +264,32 @@ export default function DailyHabitsPage() {
           )
         })}
       </div>
+
+      {/* Raw API habits list (visible when synced) */}
+      {totalFromAPI > 0 && (
+        <Card className="border border-slate-800 bg-slate-900/40 p-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+            All habits from Habitify API ({totalFromAPI} total, {completedCount} completed today)
+          </p>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {habits.map((h, i) => {
+              const isCompleted = h.status === 'completed' || h.status === 'passed' || h.is_done === true
+              return (
+                <div key={i} className="flex items-center gap-2 py-1">
+                  {isCompleted
+                    ? <CheckCircle2 size={12} className="text-green-400 flex-shrink-0" />
+                    : <Circle size={12} className="text-slate-600 flex-shrink-0" />
+                  }
+                  <span className={`text-xs ${isCompleted ? 'text-slate-200' : 'text-slate-500'}`}>
+                    {h.name || h.habit_name || h.title || 'Unnamed'}
+                  </span>
+                  <span className="text-xs text-slate-600 ml-auto">{h.status || (h.is_done ? 'done' : 'pending')}</span>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   )
 }
