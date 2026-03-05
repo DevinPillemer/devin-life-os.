@@ -233,11 +233,11 @@ export default function HealthPage() {
       {/* Past Weeks */}
       {pastWeeks.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Previous Weeks</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">History</p>
           <div className="space-y-2">
             {pastWeeks.map(week => (
-              <div key={week.weekId} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-900/40 border border-slate-800/60">
-                <span className="text-xs text-slate-500">{week.weekId}</span>
+              <div key={format(getWeekStartDate(week.weekId), 'MMM d')} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-900/40 border border-slate-800/60">
+                <span className="text-xs text-slate-500">{format(getWeekStartDate(week.weekId), 'MMM d')}</span>
                 <div className="flex items-center gap-4">
                   <span className="text-xs text-slate-400"><span className="text-blue-400 font-medium">{week.swims}</span> swim</span>
                   <span className="text-xs text-slate-400"><span className="text-purple-400 font-medium">{week.weightTraining}</span> weights</span>
