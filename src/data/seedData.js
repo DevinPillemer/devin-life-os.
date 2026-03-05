@@ -163,5 +163,13 @@ export const HEALTH_DATA = [
   { weekId: '2025-W48', swims: 6, hiit: 4, incentiveValue: 250 },
   { weekId: '2025-W49', swims: 5, hiit: 4, incentiveValue: 225 },
   { weekId: '2025-W50', swims: 5, hiit: 4, incentiveValue: 225 },
-  { weekId: '2025-W51', swims: 4, hiit: 1, incentiveValue: 125 }
+  { weekId: '2025-W51', swims: 4, hiit: 1, incentiveValue: 125 },
+  { weekId: '2026-W02', swims: 1, hiit: 1, incentiveValue: 10 },
+  { weekId: '2026-W03', swims: 4, hiit: 5, incentiveValue: 45 },
+  { weekId: '2026-W04', swims: 5, hiit: 5, incentiveValue: 50 },
+  { weekId: '2026-W05', swims: 5, hiit: 4, incentiveValue: 45 },
+  { weekId: '2026-W06', swims: 5, hiit: 5, incentiveValue: 50 },
+  { weekId: '2026-W07', swims: 4, hiit: 6, incentiveValue: 50 },
+  { weekId: '2026-W08', swims: 5, hiit: 3, incentiveValue: 40 },
+  { weekId: '2026-W09', swims: 4, hiit: 3, incentiveValue: 35 }
 ]
