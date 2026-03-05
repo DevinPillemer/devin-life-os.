@@ -154,8 +154,29 @@ export const BUDGET_DATA = {
 
 export const INCENTIVE_CONFIG = { totalBaseBudget: 1000, totalMaxBudget: 1200, sections: { learning: { base: 200, accelerator: 40, max: 240 }, dailyHabits: { base: 200, accelerator: 40, max: 240 }, health: { base: 200, accelerator: 40, max: 240 }, goals: { base: 200, accelerator: 40, max: 240 }, finance: { base: 200, accelerator: 40, max: 240 } }, healthRate: 5, learningRate: 10, goalsRate: 10 }
 
-export const HABIT_CATEGORY_MAP = { 'Swimming 1000m': { category: 'Health', points: 20 }, 'Weight Training': { category: 'Health', points: 20 }, 'Running/Cardio': { category: 'Health', points: 15 }, 'Sleep 8h Target': { category: 'Health', points: 15 }, 'Healthy Food Prep': { category: 'Health', points: 12 }, 'Cholesterol Diet': { category: 'Health', points: 10 }, 'Torah Study': { category: 'Spiritual', points: 15 }, 'Prayer/Meditation': { category: 'Spiritual', points: 12 }, 'Charity/Volunteer': { category: 'Spiritual', points: 10 }, 'Wake 7:30 AM': { category: 'Focus', points: 15 }, 'Bed by 12:00 AM': { category: 'Focus', points: 15 }, 'Budget Review': { category: 'Focus', points: 12 }, 'Notion Planning': { category: 'Focus', points: 10 }, 'TickTick Organize': { category: 'Focus', points: 8 }, 'Spanish 10min': { category: 'Learning', points: 15 }, 'Hebrew 5min': { category: 'Learning', points: 12 }, 'Blinkist Audio': { category: 'Learning', points: 12 }, 'Business Podcast': { category: 'Learning', points: 10 }, 'AI/Tech Learning': { category: 'Learning', points: 15 }, 'Thai Food Night': { category: 'Lifestyle', points: 12 }, 'Wine Tasting': { category: 'Lifestyle', points: 8 }, 'Ninja Grill Cooking': { category: 'Lifestyle', points: 10 }, 'Date Night Planning': { category: 'Lifestyle', points: 15 }, 'Protein Target (150g)': { category: 'Health', points: 20 }, 'Track Calories': { category: 'Health', points: 15 }, 'Hydration (3L)': { category: 'Health', points: 12 }, 'Meal Prep': { category: 'Health', points: 18 }, 'Fast 16hrs': { category: 'Health', points: 15 }, 'Pre-workout Nutrition': { category: 'Health', points: 10 }, 'Post-workout Protein': { category: 'Health', points: 12 }, 'Omega-3 Supplement': { category: 'Health', points: 8 }, 'No Late Snacking': { category: 'Focus', points: 10 } }
-
+export const HABIT_CATEGORY_MAP = {
+  // Health habits
+  'Swim':                     { category: 'Health',    points: 20 },
+  'Weight Training':          { category: 'Health',    points: 20 },
+  'Neck':                     { category: 'Health',    points: 10 },
+  'Electrolytes and vitamins': { category: 'Health',  points: 10 },
+  // Sleep & Focus
+  'In bed: 10:30pm':          { category: 'Focus',     points: 15 },
+  'Wake up: 7am':             { category: 'Focus',     points: 15 },
+  'Budget Check':             { category: 'Focus',     points: 12 },
+  'Cat stuff':                { category: 'Focus',     points: 8  },
+  // Learning & Growth
+  'Read Before Bed':          { category: 'Learning',  points: 15 },
+  'Podcast':                  { category: 'Learning',  points: 10 },
+  'Blinkist':                 { category: 'Learning',  points: 12 },
+  'Innovation with AI':       { category: 'Learning',  points: 15 },
+  // Spiritual
+  'Tefillin':                 { category: 'Spiritual', points: 15 },
+  'Meditation':               { category: 'Spiritual', points: 12 },
+  'Charity':                  { category: 'Spiritual', points: 10 },
+  // Lifestyle
+  'Meat Night':               { category: 'Lifestyle', points: 12 }
+}
 export const HEALTH_DATA = [
   { weekId: '2025-W45', swims: 5, hiit: 4, incentiveValue: 225 },
   { weekId: '2025-W46', swims: 5, hiit: 4, incentiveValue: 225 },
