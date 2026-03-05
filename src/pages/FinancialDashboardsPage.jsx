@@ -1,113 +1,169 @@
-import { BarChart3, Banknote, CalendarDays, CircleDollarSign, PiggyBank, RefreshCw, TrendingDown, TrendingUp, AlertCircle } from 'lucide-react'
+import { BarChart3, Banknote, CalendarDays, CircleDollarSign, PiggyBank, RefreshCw, TrendingDown, TrendingUp, AlertCircle, ArrowUpRight } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BUDGET_DATA } from '@/data/seedData'
 
-// Google Sheets IDs from env vars
-const PERSONAL_SHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_PERSONAL_ID
-const FAMILY_SHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_FAMILY_ID
+// Both sheets live in the same spreadsheet
+const SHEET_ID = import.meta.env.VITE_GOOGLE_SHEETS_PERSONAL_ID
 
-// Fetch published Google Sheet as JSON (sheet must be published to web)
-// Sheet format expected:
-//   Row 1: headers
-//   Row 2+: key-value data rows with: month, income, charities, pension, hishtalmut, car_loan, apartment_loan,
-//           investments, groceries, dining, transport, entertainment, shopping, health, subscriptions, misc,
-//           net_savings, end_balance, w1_budget, w1_spent, w2_budget, w2_spent, w3_budget, w3_spent, w4_budget, w4_spent
-async function fetchSheetData(sheetId) {
-  if (!sheetId) return null
-  try {
-    // Use the sheets JSON export URL (gid=0 = first sheet)
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=0`
-    const res = await fetch(url)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    // Google wraps the JSON in "google.visualization.Query.setResponse(...)"
-    const text = await res.text()
-    const jsonStart = text.indexOf('{')
-    const jsonEnd = text.lastIndexOf('}') + 1
-    if (jsonStart === -1) throw new Error('No JSON found in response')
-    const json = JSON.parse(text.substring(jsonStart, jsonEnd))
-    return json
-  } catch (e) {
-    throw new Error(`Sheet fetch failed: ${e.message}`)
-  }
+// Sheet names within the spreadsheet
+const SHEET_NAMES = {
+  personal: 'Devin Budget',
+  family: 'Joint Budget'
 }
 
-// Parse the Google Sheets gviz JSON into our BUDGET_DATA format
-function parseSheetToBudgetData(gvizJson) {
-  const cols = gvizJson?.table?.cols || []
-  const rows = gvizJson?.table?.rows || []
-  if (!rows.length) return null
+// Row label => what key we store it under
+// PERSONAL sheet row labels
+const PERSONAL_ROW_MAP = {
+  'TOTAL INCOME': 'income',
+  'TOTAL CHARITIES': 'charities',
+  'TOTAL CONTRIBUTION': 'joint_transfer',   // transfers row
+  'TOTAL AMOUNT': 'loans',                   // loans
+  'TOTAL CONTRIBUTION_2': 'investments',     // second TOTAL CONTRIBUTION = investments
+  'TOTAL EXPENSES': 'expenses_total',
+  'Opening balance': 'opening',
+  'Current Balance (End of Month)': 'end_balance',
+  'Net Operating (Savings / Loss)': 'net_savings',
+  // expense line items
+  'Gyms': 'exp_gym',
+  'Food Shopping': 'exp_food',
+  'Eating Out': 'exp_eating_out',
+  'Self Spend (Luxuries)': 'exp_luxuries',
+  'Baby / Kids': 'exp_baby',
+  'Transportation (Car/Gas/GETT/Pango)': 'exp_transport',
+  'Medical / Health': 'exp_medical',
+  'Travel / Events': 'exp_travel',
+  'SaaS Subscriptions (AI)': 'exp_saas',
+  'Miscellaneous / Other': 'exp_misc',
+  'Bike / Mobility': 'exp_bike',
+  'Alcohol / Booze': 'exp_alcohol',
+}
 
-  const headers = cols.map(c => (c.label || c.id || '').trim().toLowerCase())
-  const getVal = (row, key) => {
-    const idx = headers.indexOf(key)
-    if (idx === -1) return 0
-    const cell = row.c?.[idx]
-    return cell?.v ?? cell?.f ?? 0
-  }
+// FAMILY sheet row labels
+const FAMILY_ROW_MAP = {
+  'TOTAL': 'joint_total',                    // Joint contributions total
+  'Devin': 'devin_contrib',
+  'Daphna': 'daphna_contrib',
+  'Current Balance (End of Month)': 'end_balance',
+  'Net Operating (Savings / Loss)': 'net_savings',
+  'Opening balance': 'opening',
+  'Total Income': 'rental_income',
+  'Total Expenses ': 'expenses_total',
+  'Rent': 'rent',
+  'Gan (Kindergarten)': 'gan',
+  'Joint Contribution': 'joint_contrib',
+  'Mortgage ': 'mortgage',
+  'Savings Contribution': 'savings',
+  // expense lines
+  'Gym ': 'exp_gym',
+  'Groceries & Food Shopping': 'exp_groceries',
+  'Eating Out ': 'exp_eating_out',
+  'Utilities & Services': 'exp_utilities',
+  'Transportation': 'exp_transport',
+  'Insurance': 'exp_insurance',
+  'Shopping & Retail': 'exp_shopping',
+  'Online Purchases (Temu)': 'exp_online',
+  'Medical / Health': 'exp_medical',
+  'Baby / Kids': 'exp_baby',
+  'Entertainment': 'exp_entertainment',
+  'Cleaning ': 'exp_cleaning',
+}
 
-  const result = {}
-  for (const row of rows) {
-    const month = getVal(row, 'month') || getVal(row, 'month_label')
-    if (!month || month === 0) continue
-    const monthKey = String(month)
-    result[monthKey] = {
-      income: Number(getVal(row, 'income')) || 0,
-      charities: Number(getVal(row, 'charities')) || 0,
-      transfers: {
-        pension: Number(getVal(row, 'pension')) || 0,
-        hishtalmut: Number(getVal(row, 'hishtalmut')) || 0,
-      },
-      loans: {
-        car: Number(getVal(row, 'car_loan') || getVal(row, 'car')) || 0,
-        apartment: Number(getVal(row, 'apartment_loan') || getVal(row, 'apartment')) || 0,
-      },
-      investments: Number(getVal(row, 'investments')) || 0,
-      expenses: {
-        Groceries: Number(getVal(row, 'groceries')) || 0,
-        Dining: Number(getVal(row, 'dining')) || 0,
-        Transport: Number(getVal(row, 'transport')) || 0,
-        Entertainment: Number(getVal(row, 'entertainment')) || 0,
-        Shopping: Number(getVal(row, 'shopping')) || 0,
-        Health: Number(getVal(row, 'health_expenses') || getVal(row, 'health')) || 0,
-        Subscriptions: Number(getVal(row, 'subscriptions')) || 0,
-        Misc: Number(getVal(row, 'misc')) || 0,
-      },
-      netSavings: Number(getVal(row, 'net_savings')) || 0,
-      endBalance: Number(getVal(row, 'end_balance')) || 0,
-      weeks: [1, 2, 3, 4].map(n => {
-        const budget = Number(getVal(row, `w${n}_budget`)) || 0
-        const spent = Number(getVal(row, `w${n}_spent`)) || 0
-        return { weekNum: n, budget, spent, onTrack: spent <= budget }
-      })
+// Parse the column-based sheet into month objects
+// Structure: Col A = row labels, Col B+ = month columns
+// Row 0 = first data row (no header row - month labels are in col headers from gviz)
+async function fetchAndParseSheet(sheetId, sheetName) {
+  if (!sheetId) return null
+  const encodedName = encodeURIComponent(sheetName)
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodedName}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${sheetName}`)
+  const text = await res.text()
+  const start = text.indexOf('(') + 1
+  const end = text.lastIndexOf(')')
+  const json = JSON.parse(text.substring(start, end))
+  const cols = json.table.cols || []
+  const rows = json.table.rows || []
+
+  // Col 0 = row label (A), Col 1+ = month data (B, C, D...)
+  // Month labels come from the column headers (c.label)
+  const months = cols.slice(1).map(c => {
+    const raw = (c.label || c.id || '').trim()
+    return raw
+  }).filter(m => m && m.match(/[A-Za-z]+-\d{2}/))
+
+  // Build a map: monthLabel => { rowLabel: numericValue }
+  const monthData = {}
+  for (let ci = 0; ci < months.length; ci++) {
+    const monthLabel = months[ci]
+    const colIdx = ci + 1 // col 0 is label col
+    const data = {}
+    let totContribCount = 0 // track duplicate "TOTAL CONTRIBUTION" rows
+    for (const row of rows) {
+      const cells = row.c || []
+      const labelRaw = cells[0]?.f || cells[0]?.v || ''
+      const label = String(labelRaw).trim()
+      if (!label || label === '') continue
+      const cellVal = cells[colIdx]
+      const raw = cellVal?.v ?? 0
+      const num = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(/[^\d.-]/g, '')) || 0
+
+      // Handle duplicate TOTAL CONTRIBUTION (first = transfers, second = investments)
+      if (label === 'TOTAL CONTRIBUTION') {
+        totContribCount++
+        if (totContribCount === 1) data['joint_transfer'] = num
+        else data['investments'] = num
+        continue
+      }
+      // Handle duplicate TOTAL (joint budget)
+      if (label === 'TOTAL') {
+        if (!data['joint_total']) data['joint_total'] = num
+        continue
+      }
+
+      // Try matching label to our map
+      const key = (sheetName === 'Devin Budget' ? PERSONAL_ROW_MAP : FAMILY_ROW_MAP)[label]
+      if (key) data[key] = num
+    }
+    if (Object.keys(data).length > 2) {
+      monthData[monthLabel] = data
     }
   }
-  return Object.keys(result).length > 0 ? result : null
+  return monthData
 }
 
-function SummaryCard({ icon: Icon, label, value, tone = 'text-white' }) {
+function formatNIS(val) {
+  if (val == null || val === '') return '₪0'
+  const n = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0
+  const abs = Math.abs(n)
+  const str = abs.toLocaleString()
+  return (n < 0 ? '-' : '') + '₪' + str
+}
+
+function SummaryCard({ icon: Icon, label, value, tone = 'text-white', sub }) {
   return (
-    <Card className="space-y-2 border border-slate-800 bg-slate-900/60 p-4">
-      <div className="flex items-center justify-between text-slate-300">
-        <span className="text-sm">{label}</span>
-        <Icon size={16} />
+    <Card className="space-y-1 border border-slate-800 bg-slate-900/60 p-4">
+      <div className="flex items-center justify-between text-slate-400">
+        <span className="text-xs uppercase tracking-wide font-medium">{label}</span>
+        <Icon size={14} />
       </div>
-      <p className={`text-2xl font-semibold ${tone}`}>{value}</p>
+      <p className={`text-2xl font-bold ${tone}`}>{value}</p>
+      {sub && <p className="text-xs text-slate-500">{sub}</p>}
     </Card>
   )
 }
 
-function ExpenseRow({ label, amount, percent }) {
+function ExpenseRow({ label, amount, total }) {
+  const pct = total > 0 ? Math.min(100, Math.round((Math.abs(amount) / total) * 100)) : 0
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       <div className="flex items-center justify-between text-sm">
         <span className="text-slate-300">{label}</span>
-        <span className="font-medium text-white">₪{amount.toLocaleString()} • {percent}%</span>
+        <span className="font-medium text-white">{formatNIS(amount)} <span className="text-slate-500 text-xs">{pct}%</span></span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-800">
-        <div className="h-full bg-cyan-500" style={{ width: `${percent}%` }} />
+      <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
+        <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -117,220 +173,217 @@ export default function FinancialDashboardsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const dashboardType = searchParams.get('type') === 'family' ? 'family' : 'personal'
 
-  const sheetId = dashboardType === 'family' ? FAMILY_SHEET_ID : PERSONAL_SHEET_ID
   const [sheetData, setSheetData] = useState(null)
-  const [loadingSheet, setLoadingSheet] = useState(false)
-  const [sheetError, setSheetError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [lastFetch, setLastFetch] = useState(null)
 
-  useEffect(() => {
-    if (!sheetId) {
-      setSheetData(null)
-      setSheetError(null)
-      setLoadingSheet(false)
+  const loadSheet = async (type) => {
+    if (!SHEET_ID) {
+      setError('Sheet ID not configured')
       return
     }
-    setLoadingSheet(true)
-    setSheetError(null)
-    fetchSheetData(sheetId)
-      .then(raw => {
-        const parsed = parseSheetToBudgetData(raw)
-        if (parsed) {
-          setSheetData(parsed)
-          setSheetError(null)
-        } else {
-          setSheetError('Sheet loaded but no valid rows found. Check column headers match expected format.')
-        }
-      })
-      .catch(e => setSheetError(e.message))
-      .finally(() => setLoadingSheet(false))
-  }, [sheetId, dashboardType])
+    setLoading(true)
+    setError(null)
+    try {
+      const sheetName = SHEET_NAMES[type]
+      const data = await fetchAndParseSheet(SHEET_ID, sheetName)
+      if (!data || Object.keys(data).length === 0) {
+        throw new Error(`No months found in ${sheetName}. Make sure the sheet is published (File → Share → Publish to web).`)
+      }
+      setSheetData({ type, data })
+      setLastFetch(new Date())
+    } catch (e) {
+      setError(e.message)
+      setSheetData(null)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const budgetData = sheetData || BUDGET_DATA
-  const isLive = !!sheetData
-  const months = Object.keys(budgetData)
-  const selectedMonth = searchParams.get('month') && budgetData[searchParams.get('month')]
+  useEffect(() => {
+    loadSheet(dashboardType)
+  }, [dashboardType])
+
+  const months = sheetData?.data ? Object.keys(sheetData.data) : []
+  const selectedMonth = searchParams.get('month') && sheetData?.data?.[searchParams.get('month')]
     ? searchParams.get('month')
-    : months[months.length - 1] || months[0]
-  const monthData = budgetData[selectedMonth]
+    : months[months.length - 1] || ''
 
-  const totals = useMemo(() => {
-    if (!monthData) return {}
-    const fixedDeductions = (monthData.charities || 0)
-      + (monthData.transfers?.pension || 0)
-      + (monthData.transfers?.hishtalmut || 0)
-      + (monthData.loans?.car || 0)
-      + (monthData.loans?.apartment || 0)
-      + (monthData.investments || 0)
-    const variableTotal = Object.values(monthData.expenses || {}).reduce((sum, val) => sum + Number(val || 0), 0)
-    const completedWeeks = (monthData.weeks || []).filter(w => w.onTrack).length
-    const incentiveValue = Math.min(200, completedWeeks * 50) + 40
-    return { fixedDeductions, variableTotal, completedWeeks, incentiveValue }
-  }, [monthData])
+  const monthData = sheetData?.data?.[selectedMonth] || null
+  const isFamily = dashboardType === 'family'
 
-  const handleMonthChange = month => setSearchParams({ type: dashboardType, month })
+  // Compute expense breakdown
+  const expenseKeys = isFamily
+    ? ['exp_gym','exp_groceries','exp_eating_out','exp_utilities','exp_transport','exp_insurance','exp_shopping','exp_online','exp_medical','exp_baby','exp_entertainment','exp_cleaning']
+    : ['exp_gym','exp_food','exp_eating_out','exp_luxuries','exp_baby','exp_transport','exp_medical','exp_travel','exp_saas','exp_misc','exp_bike','exp_alcohol']
 
-  const handleTabChange = type => setSearchParams({ type })
+  const expenseLabels = isFamily
+    ? ['Gym','Groceries & Food','Eating Out','Utilities','Transport','Insurance','Shopping','Online (Temu)','Medical','Baby/Kids','Entertainment','Cleaning']
+    : ['Gym','Food Shopping','Eating Out','Luxuries','Baby/Kids','Transport','Medical','Travel/Events','SaaS/AI','Misc','Bike','Alcohol']
 
-  const handleRefresh = () => {
-    if (!sheetId) return
-    setLoadingSheet(true)
-    setSheetError(null)
-    fetchSheetData(sheetId)
-      .then(raw => {
-        const parsed = parseSheetToBudgetData(raw)
-        if (parsed) setSheetData(parsed)
-        else setSheetError('No valid rows found after refresh.')
-      })
-      .catch(e => setSheetError(e.message))
-      .finally(() => setLoadingSheet(false))
-  }
+  const expTotal = monthData ? expenseKeys.reduce((s, k) => s + (monthData[k] || 0), 0) : 0
 
-  if (!monthData) {
-    return <div className="p-8 text-slate-400">No budget data available.</div>
-  }
+  const handleTabChange = (type) => setSearchParams({ type })
+  const handleMonthChange = (m) => setSearchParams({ type: dashboardType, month: m })
 
   return (
-    <div className="space-y-6 rounded-xl bg-slate-950 p-4 text-white">
+    <div className="space-y-5 rounded-xl bg-slate-950 p-4 text-white">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <h2 className="text-2xl font-bold">
-            Finance Dashboard • {dashboardType === 'family' ? 'Family' : 'Personal'}
+            Finance • {isFamily ? 'Family (Joint)' : 'Personal (Devin)'}
           </h2>
-          <p className="text-sm text-slate-400">
-            {isLive
-              ? <span className="text-emerald-400">● Live from Google Sheets</span>
-              : sheetId
-                ? loadingSheet
-                  ? <span className="text-amber-400">Loading sheet...</span>
-                  : <span className="text-red-400">● Sheet error — showing seed data</span>
-                : <span className="text-slate-500">No sheet connected — showing seed data</span>
-            }
+          <p className="text-xs text-slate-400">
+            {loading && <span className="text-amber-400">Loading from Google Sheets...</span>}
+            {!loading && sheetData && <span className="text-emerald-400">● Live — last fetched {lastFetch?.toLocaleTimeString()}</span>}
+            {!loading && error && <span className="text-red-400">● Error — {error.substring(0, 60)}</span>}
+            {!loading && !sheetData && !error && <span className="text-slate-500">No data loaded</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Personal / Family tabs */}
-          <div className="flex rounded-lg border border-slate-700 overflow-hidden">
-            <button
-              onClick={() => handleTabChange('personal')}
-              className={`px-3 py-1.5 text-sm ${dashboardType === 'personal' ? 'bg-teal-500/20 text-teal-300 border-r border-slate-700' : 'text-slate-400 hover:bg-slate-800 border-r border-slate-700'}`}
-            >Personal</button>
-            <button
-              onClick={() => handleTabChange('family')}
-              className={`px-3 py-1.5 text-sm ${dashboardType === 'family' ? 'bg-teal-500/20 text-teal-300' : 'text-slate-400 hover:bg-slate-800'}`}
-            >Family</button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex rounded-lg border border-slate-700 overflow-hidden text-sm">
+            <button onClick={() => handleTabChange('personal')} className={`px-3 py-1.5 ${!isFamily ? 'bg-teal-500/20 text-teal-300' : 'text-slate-400 hover:bg-slate-800'} border-r border-slate-700`}>Personal</button>
+            <button onClick={() => handleTabChange('family')} className={`px-3 py-1.5 ${isFamily ? 'bg-teal-500/20 text-teal-300' : 'text-slate-400 hover:bg-slate-800'}`}>Family</button>
           </div>
-          {sheetId && (
-            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loadingSheet} className="gap-1 border-slate-700 text-slate-300 hover:bg-slate-800">
-              <RefreshCw size={14} className={loadingSheet ? 'animate-spin' : ''} />
-              Refresh
-            </Button>
-          )}
+          <Button variant="outline" size="sm" onClick={() => loadSheet(dashboardType)} disabled={loading} className="gap-1 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs">
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Sync
+          </Button>
+          <a href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300">
+            <ArrowUpRight size={12}/> Open Sheet
+          </a>
         </div>
       </div>
 
-      {/* Sheet connection notice */}
-      {!sheetId && (
-        <Card className="border border-amber-600/30 bg-amber-500/5 p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={16} className="text-amber-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-amber-300">Google Sheet not connected</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Add <code className="text-amber-200 bg-slate-800 px-1 rounded">{dashboardType === 'family' ? 'VITE_GOOGLE_SHEETS_FAMILY_ID' : 'VITE_GOOGLE_SHEETS_PERSONAL_ID'}</code> to your Vercel environment variables to sync live data.
-                Currently showing example seed data.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {sheetError && (
-        <Card className="border border-red-600/30 bg-red-500/5 p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-red-300">Sheet sync error</p>
-              <p className="text-xs text-slate-400 mt-1">{sheetError}</p>
-              <p className="text-xs text-slate-500 mt-1">Showing seed data instead. Make sure the sheet is published: File → Share → Publish to web.</p>
-            </div>
+      {/* Error */}
+      {error && (
+        <Card className="border border-red-600/30 bg-red-500/5 p-4 flex items-start gap-3">
+          <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-300">Could not load sheet</p>
+            <p className="text-xs text-slate-400 mt-1">{error}</p>
+            <p className="text-xs text-slate-500 mt-1">Make sure the sheet is published: File → Share → Publish to web → select "Entire Document" → Publish.</p>
           </div>
         </Card>
       )}
 
       {/* Month selector */}
-      <div className="flex flex-wrap gap-2">
-        {months.map(month => (
-          <button
-            key={month}
-            type="button"
-            onClick={() => handleMonthChange(month)}
-            className={`rounded-lg border px-3 py-1.5 text-sm ${selectedMonth === month
-              ? 'border-teal-500 bg-teal-500/20 text-teal-200'
-              : 'border-slate-800 bg-slate-900/60 text-slate-300'}`}
-          >
-            {month}
-          </button>
-        ))}
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard icon={CircleDollarSign} label="Income" value={`₪${monthData.income?.toLocaleString()}`} tone="text-emerald-300" />
-        <SummaryCard icon={TrendingDown} label="Fixed Deductions" value={`₪${totals.fixedDeductions?.toLocaleString()}`} tone="text-red-300" />
-        <SummaryCard icon={BarChart3} label="Variable Expenses" value={`₪${totals.variableTotal?.toLocaleString()}`} tone="text-cyan-300" />
-        <SummaryCard icon={PiggyBank} label="Net Savings" value={`₪${monthData.netSavings?.toLocaleString()}`} tone="text-teal-300" />
-      </div>
-
-      {/* Breakdowns */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="space-y-3 border border-slate-800 bg-slate-900/60 p-4">
-          <div className="flex items-center gap-2 text-slate-200"><Banknote size={16}/> Fixed deductions</div>
-          <p className="text-sm text-slate-300">Charities: ₪{monthData.charities?.toLocaleString()}</p>
-          <p className="text-sm text-slate-300">Pension: ₪{monthData.transfers?.pension?.toLocaleString()} • Hishtalmut: ₪{monthData.transfers?.hishtalmut?.toLocaleString()}</p>
-          <p className="text-sm text-slate-300">Car loan: ₪{monthData.loans?.car?.toLocaleString()} • Apartment: ₪{monthData.loans?.apartment?.toLocaleString()}</p>
-          <p className="text-sm text-slate-300">Investments: ₪{monthData.investments?.toLocaleString()}</p>
-          <p className="text-sm text-white font-medium">End balance: ₪{monthData.endBalance?.toLocaleString()}</p>
-        </Card>
-        <Card className="space-y-3 border border-slate-800 bg-slate-900/60 p-4">
-          <div className="flex items-center gap-2 text-slate-200"><TrendingUp size={16}/> Variable expenses</div>
-          {Object.entries(monthData.expenses || {}).map(([label, amount]) => (
-            <ExpenseRow
-              key={label}
-              label={label}
-              amount={Number(amount)}
-              percent={totals.variableTotal > 0 ? Math.round((Number(amount) / totals.variableTotal) * 100) : 0}
-            />
-          ))}
-        </Card>
-      </div>
-
-      {/* Weekly tracker */}
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">Weekly budget tracker</h3>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {(monthData.weeks || []).map(week => (
-            <Card key={week.weekNum} className="space-y-2 border border-slate-800 bg-slate-900/60 p-4">
-              <div className="flex items-center justify-between">
-                <p className="font-medium">Week {week.weekNum}</p>
-                <span className={`rounded-full px-2 py-1 text-xs ${week.onTrack ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200'}`}>
-                  {week.onTrack ? 'On track' : 'Over budget'}
-                </span>
-              </div>
-              <p className="text-sm text-slate-300">Budget: ₪{week.budget?.toLocaleString()}</p>
-              <p className="text-sm text-slate-300">Spent: ₪{week.spent?.toLocaleString()}</p>
-            </Card>
+      {months.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {months.map(m => (
+            <button key={m} onClick={() => handleMonthChange(m)}
+              className={`rounded-lg border px-3 py-1 text-sm ${selectedMonth === m ? 'border-teal-500 bg-teal-500/20 text-teal-200' : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200'}`}>
+              {m}
+            </button>
           ))}
         </div>
-      </section>
+      )}
 
-      {/* Incentive */}
-      <Card className="space-y-2 border border-slate-800 bg-slate-900/60 p-4">
-        <div className="flex items-center gap-2 text-slate-200"><CalendarDays size={16}/> Incentive</div>
-        <p className="text-sm text-slate-300">Completed budget weeks: {totals.completedWeeks} × ₪50</p>
-        <p className="text-sm text-slate-300">Payout cap: ₪200 base + ₪40 accelerator</p>
-        <p className="text-lg font-semibold text-teal-300">Total payout: ₪{totals.incentiveValue}</p>
-      </Card>
+      {monthData && (
+        <>
+          {/* Summary cards */}
+          {isFamily ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SummaryCard icon={CircleDollarSign} label="Joint Contributions" value={formatNIS(monthData.joint_total || (monthData.devin_contrib || 0) + (monthData.daphna_contrib || 0))} tone="text-emerald-300"
+                sub={`Devin: ${formatNIS(monthData.devin_contrib)} • Daphna: ${formatNIS(monthData.daphna_contrib)}`} />
+              <SummaryCard icon={TrendingDown} label="Total Expenses" value={formatNIS(monthData.expenses_total || expTotal)} tone="text-red-300" />
+              <SummaryCard icon={Banknote} label="Fixed (Rent+Gan+Mort)" value={formatNIS((monthData.rent||0)+(monthData.gan||0)+(monthData.mortgage||0))} tone="text-orange-300" />
+              <SummaryCard icon={PiggyBank} label="Net (End Balance)" value={formatNIS(monthData.end_balance)} tone={monthData.end_balance > 0 ? 'text-teal-300' : 'text-red-300'}
+                sub={`Net: ${formatNIS(monthData.net_savings)}`} />
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <SummaryCard icon={CircleDollarSign} label="Total Income" value={formatNIS(monthData.income)} tone="text-emerald-300" />
+              <SummaryCard icon={TrendingDown} label="Total Expenses" value={formatNIS(monthData.expenses_total || expTotal)} tone="text-red-300" />
+              <SummaryCard icon={Banknote} label="Loans + Investments" value={formatNIS((monthData.loans||0)+(monthData.investments||0))} tone="text-orange-300"
+                sub={`Loans: ${formatNIS(monthData.loans)} • Invest: ${formatNIS(monthData.investments)}`} />
+              <SummaryCard icon={PiggyBank} label="End Balance" value={formatNIS(monthData.end_balance)} tone={monthData.end_balance > 0 ? 'text-teal-300' : 'text-red-300'}
+                sub={`Net: ${formatNIS(monthData.net_savings)}`} />
+            </div>
+          )}
+
+          {/* Two column detail */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Fixed costs */}
+            <Card className="border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-slate-200 font-semibold text-sm">
+                <Banknote size={15}/> Fixed &amp; Transfers
+              </div>
+              {isFamily ? (
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-400">Rent</span><span className="text-white font-medium">{formatNIS(monthData.rent)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Gan / Kindergarten</span><span className="text-white font-medium">{formatNIS(monthData.gan)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Mortgage</span><span className="text-white font-medium">{formatNIS(monthData.mortgage)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Savings</span><span className="text-white font-medium">{formatNIS(monthData.savings)}</span></div>
+                  <div className="flex justify-between pt-1 border-t border-slate-800"><span className="text-slate-300 font-medium">Rental Income</span><span className="text-emerald-300 font-medium">{formatNIS(monthData.rental_income)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-300 font-medium">Opening Balance</span><span className="text-slate-200 font-medium">{formatNIS(monthData.opening)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-300 font-bold">End Balance</span><span className={`font-bold ${(monthData.end_balance||0) >= 0 ? 'text-teal-300' : 'text-red-300'}`}>{formatNIS(monthData.end_balance)}</span></div>
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-slate-400">Charities</span><span className="text-white font-medium">{formatNIS(monthData.charities)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Joint Transfer</span><span className="text-white font-medium">{formatNIS(monthData.joint_transfer)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Loans (Mom)</span><span className="text-white font-medium">{formatNIS(monthData.loans)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Investments (IBKR)</span><span className="text-white font-medium">{formatNIS(monthData.investments)}</span></div>
+                  <div className="flex justify-between pt-1 border-t border-slate-800"><span className="text-slate-300 font-medium">Opening Balance</span><span className="text-slate-200 font-medium">{formatNIS(monthData.opening)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-300 font-bold">End Balance</span><span className={`font-bold ${(monthData.end_balance||0) >= 0 ? 'text-teal-300' : 'text-red-300'}`}>{formatNIS(monthData.end_balance)}</span></div>
+                </div>
+              )}
+            </Card>
+
+            {/* Expense breakdown */}
+            <Card className="border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-200 font-semibold text-sm">
+                  <TrendingUp size={15}/> Variable Expenses
+                </div>
+                <span className="text-xs text-slate-400">Total: {formatNIS(monthData.expenses_total || expTotal)}</span>
+              </div>
+              <div className="space-y-2">
+                {expenseKeys.map((key, i) => {
+                  const val = monthData[key] || 0
+                  if (!val) return null
+                  return <ExpenseRow key={key} label={expenseLabels[i]} amount={val} total={monthData.expenses_total || expTotal} />
+                })}
+              </div>
+            </Card>
+          </div>
+
+          {/* Net summary bar */}
+          <Card className="border border-slate-800 bg-slate-900/60 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-slate-200 text-sm font-semibold">
+                <CalendarDays size={15}/> Month Summary
+              </div>
+              <span className={`text-sm font-bold ${(monthData.net_savings||0) >= 0 ? 'text-teal-300' : 'text-red-300'}`}>
+                Net: {formatNIS(monthData.net_savings)}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center text-sm">
+              <div className="rounded-lg bg-slate-900 p-3 border border-slate-800">
+                <p className="text-xs text-slate-500 mb-1">Income / Contributions</p>
+                <p className="font-bold text-emerald-300">{formatNIS(isFamily ? (monthData.joint_total || 0) + (monthData.rental_income || 0) : monthData.income)}</p>
+              </div>
+              <div className="rounded-lg bg-slate-900 p-3 border border-slate-800">
+                <p className="text-xs text-slate-500 mb-1">All Outflows</p>
+                <p className="font-bold text-red-300">{formatNIS((monthData.expenses_total||expTotal) + (isFamily ? (monthData.rent||0)+(monthData.gan||0)+(monthData.mortgage||0) : (monthData.charities||0)+(monthData.joint_transfer||0)+(monthData.loans||0)+(monthData.investments||0)))}</p>
+              </div>
+              <div className="rounded-lg bg-slate-900 p-3 border border-slate-800">
+                <p className="text-xs text-slate-500 mb-1">Closing Balance</p>
+                <p className={`font-bold ${(monthData.end_balance||0) >= 0 ? 'text-teal-300' : 'text-red-300'}`}>{formatNIS(monthData.end_balance)}</p>
+              </div>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {!monthData && !loading && !error && (
+        <Card className="border border-slate-700 bg-slate-900/40 p-8 text-center">
+          <p className="text-slate-400">Click Sync to load data from Google Sheets</p>
+        </Card>
+      )}
     </div>
   )
 }
