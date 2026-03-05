@@ -36,10 +36,10 @@ function SectionCard({ icon: Icon, name, earned, config, color, bgColor }) {
       </div>
       <div className="flex items-end justify-between">
         <div>
-          <p className={`text-2xl font-bold ${color}`}>\u20aa{earned}</p>
-          <p className="text-xs text-slate-500">of \u20aa{config.base} base + \u20aa{config.accelerator} accelerator</p>
+          <p className={`text-2xl font-bold ${color}`}>₪{earned}</p>
+          <p className="text-xs text-slate-500">of ₪{config.base} base + ₪{config.accelerator} accelerator</p>
         </div>
-        <p className="text-sm text-slate-400">\u20aa{config.max} max</p>
+        <p className="text-sm text-slate-400">₪{config.max} max</p>
       </div>
       <div>
         <Progress value={pct} className="h-2 bg-slate-800" />
@@ -125,7 +125,7 @@ export default function WalletDashboardPage() {
           <p className="text-sm text-slate-400">{monthLabel} &bull; Resets each month</p>
         </div>
         <div className="text-right">
-          <p className="text-3xl font-bold text-teal-400">\u20aa{total}</p>
+          <p className="text-3xl font-bold text-teal-400">₪{total}</p>
           <p className="text-xs text-slate-500">earned this month</p>
         </div>
       </div>
@@ -137,13 +137,13 @@ export default function WalletDashboardPage() {
             <TrendingUp size={16} className="text-teal-400" />
             <span className="font-semibold text-sm">Monthly Total</span>
           </div>
-          <span className="text-sm text-slate-400">\u20aa{totalBaseBudget} base / \u20aa{totalMaxBudget} max</span>
+          <span className="text-sm text-slate-400">₪{totalBaseBudget} base / ₪{totalMaxBudget} max</span>
         </div>
         <Progress value={pctOfMax} className="h-3 bg-slate-800" />
         <div className="flex justify-between mt-2 text-xs text-slate-400">
-          <span>\u20aa0</span>
-          <span className="text-teal-400 font-medium">\u20aa{total} earned ({Math.round(pctOfMax)}% of max)</span>
-          <span>\u20aa{totalMaxBudget}</span>
+          <span>₪0</span>
+          <span className="text-teal-400 font-medium">₪{total} earned ({Math.round(pctOfMax)}% of max)</span>
+          <span>₪{totalMaxBudget}</span>
         </div>
         <div className="mt-3 h-1.5 bg-slate-800 rounded-full overflow-hidden">
           <div
@@ -151,7 +151,7 @@ export default function WalletDashboardPage() {
             style={{ width: `${pctOfBase}%` }}
           />
         </div>
-        <p className="text-xs text-slate-500 mt-1">{Math.round(pctOfBase)}% of base budget (\u20aa{totalBaseBudget})</p>
+        <p className="text-xs text-slate-500 mt-1">{Math.round(pctOfBase)}% of base budget (₪{totalBaseBudget})</p>
       </Card>
 
       {/* Section Cards */}
