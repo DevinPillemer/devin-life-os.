@@ -108,7 +108,7 @@ function CurrentWeekCard({ week }) {
           <p className="text-xs text-slate-400 mt-0.5">{week.weekId}</p>
         </div>
         <div className="text-right">
-          <p className="text-3xl font-bold text-teal-400">\u20aa{week.incentiveValue}</p>
+          <p className="text-3xl font-bold text-teal-400">₪{week.incentiveValue}</p>
           <p className="text-xs text-slate-400">incentive earned</p>
         </div>
       </div>
@@ -144,7 +144,7 @@ function WeekRow({ week }) {
     <Card className="border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-700 transition-colors">
       <div className="flex items-center justify-between mb-3">
         <p className="font-semibold text-white text-sm">{week.weekId}</p>
-        <span className="text-sm font-bold text-teal-400">\u20aa{week.incentiveValue}</span>
+        <span className="text-sm font-bold text-teal-400">₪{week.incentiveValue}</span>
       </div>
       <div className="grid grid-cols-4 gap-2 text-center">
         <div>
@@ -221,7 +221,7 @@ export default function HealthPage() {
         <div>
           <h2 className="text-2xl font-bold">Health</h2>
           <p className="text-sm text-slate-300">
-            \u20aa{INCENTIVE_CONFIG.healthRate} per session &bull; \u20aa{config.base} base + \u20aa{config.accelerator} accelerator / month
+            ₪{INCENTIVE_CONFIG.healthRate} per session &bull; ₪{config.base} base + ₪{config.accelerator} accelerator / month
           </p>
           <p className="text-xs text-slate-400">
             Last sync: {lastSync ? format(new Date(lastSync), 'PPpp') : 'Never'}
@@ -241,7 +241,7 @@ export default function HealthPage() {
         <StatCard icon={Activity} label="Total Sessions" value={totals.totalSessions} color="text-green-400" />
         <StatCard icon={TrendingUp} label="Swim Distance" value={formatDistance(totals.totalDistance)} color="text-cyan-400" />
         <StatCard icon={Clock} label="Moving Time" value={formatDuration(totals.totalMovingTime)} color="text-amber-400" />
-        <StatCard icon={Zap} label="Total Incentive" value={`\u20aa${totals.incentive}`} color="text-teal-400" />
+        <StatCard icon={Zap} label="Total Incentive" value={`₪${totals.incentive}`} color="text-teal-400" />
       </div>
 
       <div>
