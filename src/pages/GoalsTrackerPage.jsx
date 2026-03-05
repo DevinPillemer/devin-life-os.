@@ -140,7 +140,7 @@ export default function GoalsTrackerPage() {
   }, [storedGoals])
 
   // Only show in_progress goals
-  const goals = useMemo(() => allGoals.filter(goal => goal.status === 'in_progress'), [allGoals])
+  const goals = useMemo(() => allGoals.filter(goal => goal.status !== 'done'), [allGoals])
 
   const inProgressCount = goals.length
   const totalCount = allGoals.length
@@ -198,7 +198,7 @@ export default function GoalsTrackerPage() {
         <div>
           <h2 className="text-2xl font-bold">Goals</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {inProgressCount} in progress &bull; {totalCount} total
+            {inProgressCount} active &bull; {totalCount} total
             {lastSync && <span> &bull; {format(new Date(lastSync), 'MMM d, h:mma')}</span>}
           </p>
         </div>
