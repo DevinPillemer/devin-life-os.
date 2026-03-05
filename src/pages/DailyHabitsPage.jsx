@@ -89,7 +89,7 @@ export default function DailyHabitsPage() {
     try {
       const todayDate = format(new Date(), 'yyyy-MM-dd')
       // Use the Journal endpoint which returns habits WITH their completion status for a given date
-      const targetDate = `${todayDate}T00:00:00`
+      const targetDate = `${todayDate}T00:00:00+00:00`
       const res = await fetch(
         `https://api.habitify.me/journal?target_date=${encodeURIComponent(targetDate)}`,
         { headers: { Authorization: apiKey } }
