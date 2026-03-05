@@ -1,30 +1,22 @@
-import { format, getISOWeek, getISOWeekYear } from 'date-fns'
-import { Activity, Dumbbell, Waves, Clock, RefreshCw, TrendingUp, Zap } from 'lucide-react'
+import { format, getISOWeek, getISOWeekYear, startOfMonth } from 'date-fns'
+import { Waves, Dumbbell, RefreshCw, Zap, Calendar } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { HEALTH_DATA, INCENTIVE_CONFIG } from '@/data/seedData'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 
-const DEFAULT_AFTER_SECONDS = 56 * 24 * 60 * 60
-
-function formatDistance(meters) {
-  if (!meters) return '0 m'
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`
-  return `${Math.round(meters)} m`
-}
-
 function formatDuration(totalSeconds) {
+  if (!totalSeconds) return '0m'
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
+  if (hours === 0) return `${minutes}m`
   return `${hours}h ${String(minutes).padStart(2, '0')}m`
 }
 
 function getCurrentISOWeekId() {
   const now = new Date()
-  const isoYear = getISOWeekYear(now)
-  const isoWeek = getISOWeek(now)
-  return `${isoYear}-W${String(isoWeek).padStart(2, '0')}`
+  return `${getISOWeekYear(now)}-W${String(getISOWeek(now)).padStart(2, '0')}`
 }
 
 function parseStravaActivities(activities) {
@@ -67,106 +59,16 @@ function normalizeSeedRows(rows) {
   })
 }
 
-function StatCard({ icon: Icon, label, value, color = 'text-teal-400', sub }) {
-  return (
-    <Card className="border border-slate-800 bg-slate-900/60 p-5 flex flex-col gap-1">
-      <div className="flex items-center justify-between text-slate-400 mb-1">
-        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
-        <Icon size={16} className={color} />
-      </div>
-      <p className={`text-3xl font-bold ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
-    </Card>
-  )
-}
-
-function CurrentWeekCard({ week }) {
-  const currentWeekId = getCurrentISOWeekId()
-  const isCurrentWeek = week?.weekId === currentWeekId
-
-  if (!week) {
-    return (
-      <Card className="border border-teal-500/40 bg-gradient-to-br from-teal-900/20 to-slate-900/60 p-6">
-        <p className="text-slate-400 text-sm">No data for current week yet.</p>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="border border-teal-500/40 bg-gradient-to-br from-teal-900/20 to-slate-900/60 p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <Zap size={18} className="text-teal-400" />
-            <h3 className="text-lg font-bold text-white">
-              {isCurrentWeek ? 'This Week' : week.weekId}
-            </h3>
-            {isCurrentWeek && (
-              <span className="text-xs bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full px-2 py-0.5">Live</span>
-            )}
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">{week.weekId}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-3xl font-bold text-teal-400">₪{week.incentiveValue}</p>
-          <p className="text-xs text-slate-400">incentive earned</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-slate-800/60 rounded-xl p-4 text-center">
-          <Waves size={22} className="text-blue-400 mx-auto mb-2" />
-          <p className="text-3xl font-bold text-blue-400">{week.swims}</p>
-          <p className="text-xs text-slate-400 mt-1">Swims</p>
-          {week.totalDistance > 0 && <p className="text-xs text-slate-500">{formatDistance(week.totalDistance)}</p>}
-        </div>
-        <div className="bg-slate-800/60 rounded-xl p-4 text-center">
-          <Dumbbell size={22} className="text-purple-400 mx-auto mb-2" />
-          <p className="text-3xl font-bold text-purple-400">{week.weightTraining}</p>
-          <p className="text-xs text-slate-400 mt-1">Weight / HIIT</p>
-        </div>
-        <div className="bg-slate-800/60 rounded-xl p-4 text-center">
-          <Activity size={22} className="text-green-400 mx-auto mb-2" />
-          <p className="text-3xl font-bold text-green-400">{week.totalSessions}</p>
-          <p className="text-xs text-slate-400 mt-1">Total Sessions</p>
-        </div>
-        <div className="bg-slate-800/60 rounded-xl p-4 text-center">
-          <Clock size={22} className="text-amber-400 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-amber-400">{formatDuration(week.totalMovingTime)}</p>
-          <p className="text-xs text-slate-400 mt-1">Moving Time</p>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-function WeekRow({ week }) {
-  return (
-    <Card className="border border-slate-800 bg-slate-900/60 p-4 hover:border-slate-700 transition-colors">
-      <div className="flex items-center justify-between mb-3">
-        <p className="font-semibold text-white text-sm">{week.weekId}</p>
-        <span className="text-sm font-bold text-teal-400">₪{week.incentiveValue}</span>
-      </div>
-      <div className="grid grid-cols-4 gap-2 text-center">
-        <div>
-          <p className="text-xl font-bold text-blue-400">{week.swims}</p>
-          <p className="text-xs text-slate-500">Swims</p>
-          {week.totalDistance > 0 && <p className="text-xs text-slate-600">{formatDistance(week.totalDistance)}</p>}
-        </div>
-        <div>
-          <p className="text-xl font-bold text-purple-400">{week.weightTraining}</p>
-          <p className="text-xs text-slate-500">Weights</p>
-        </div>
-        <div>
-          <p className="text-xl font-bold text-green-400">{week.totalSessions}</p>
-          <p className="text-xs text-slate-500">Sessions</p>
-        </div>
-        <div>
-          <p className="text-base font-bold text-amber-400">{formatDuration(week.totalMovingTime)}</p>
-          <p className="text-xs text-slate-500">Time</p>
-        </div>
-      </div>
-    </Card>
-  )
+function getWeekStartDate(weekId) {
+  // weekId format: 2026-W10
+  const [year, weekPart] = weekId.split('-W')
+  const week = parseInt(weekPart, 10)
+  // Jan 4 is always in week 1
+  const jan4 = new Date(parseInt(year, 10), 0, 4)
+  const dayOfWeek = jan4.getDay() || 7 // Monday = 1
+  const weekStart = new Date(jan4)
+  weekStart.setDate(jan4.getDate() - (dayOfWeek - 1) + (week - 1) * 7)
+  return weekStart
 }
 
 export default function HealthPage() {
@@ -181,32 +83,60 @@ export default function HealthPage() {
     : normalizeSeedRows(HEALTH_DATA)
 
   const currentWeekId = getCurrentISOWeekId()
-  const currentWeek = healthRows.find(w => w.weekId === currentWeekId) || healthRows[0]
-  const pastWeeks = healthRows.filter(w => w.weekId !== currentWeek?.weekId)
+  const currentWeek = healthRows.find(w => w.weekId === currentWeekId) || null
 
-  const totals = useMemo(() => {
-    return healthRows.reduce((acc, week) => {
-      acc.swims += Number(week.swims || 0)
-      acc.weightTraining += Number(week.weightTraining || 0)
-      acc.totalSessions += Number(week.totalSessions || 0)
-      acc.totalDistance += Number(week.totalDistance || 0)
-      acc.totalMovingTime += Number(week.totalMovingTime || 0)
-      acc.incentive += Number(week.incentiveValue || 0)
+  // Monthly stats: only weeks that fall within the current calendar month
+  const now = new Date()
+  const monthStart = startOfMonth(now)
+  const monthLabel = format(now, 'MMMM yyyy')
+
+  const monthWeeks = useMemo(() => {
+    return healthRows.filter(w => {
+      try {
+        const ws = getWeekStartDate(w.weekId)
+        // Include week if it has any overlap with this month
+        // (week starts on or after month start, OR is the current week)
+        return ws >= monthStart || w.weekId === currentWeekId
+      } catch {
+        return false
+      }
+    })
+  }, [healthRows, monthStart, currentWeekId])
+
+  const monthTotals = useMemo(() => {
+    return monthWeeks.reduce((acc, w) => {
+      acc.swims += Number(w.swims || 0)
+      acc.weightTraining += Number(w.weightTraining || 0)
+      acc.totalSessions += Number(w.totalSessions || 0)
+      acc.totalMovingTime += Number(w.totalMovingTime || 0)
+      acc.incentive += Number(w.incentiveValue || 0)
       return acc
-    }, { swims: 0, weightTraining: 0, totalSessions: 0, totalDistance: 0, totalMovingTime: 0, incentive: 0 })
-  }, [healthRows])
+    }, { swims: 0, weightTraining: 0, totalSessions: 0, totalMovingTime: 0, incentive: 0 })
+  }, [monthWeeks])
+
+  const pastWeeks = healthRows.filter(w => w.weekId !== currentWeekId).slice(0, 8)
 
   const handleSync = async () => {
     setSyncError(null)
     setIsSyncing(true)
     try {
-      const after = Math.floor(Date.now() / 1000) - DEFAULT_AFTER_SECONDS
-      const response = await fetch(`/api/strava?after=${after}`)
+      // Fetch from beginning of current month
+      const afterTimestamp = Math.floor(monthStart.getTime() / 1000)
+      const response = await fetch(`/api/strava?after=${afterTimestamp}`)
       const payload = await response.json()
       if (!response.ok) throw new Error(payload?.message || `Strava sync failed (${response.status})`)
       if (!Array.isArray(payload)) throw new Error('Strava API returned an invalid response format.')
       const parsedRows = parseStravaActivities(payload)
-      setSyncedHealthData(parsedRows)
+      // Merge with existing data (keep old weeks, replace/add new ones)
+      const existingRows = Array.isArray(syncedHealthData) && syncedHealthData.length ? syncedHealthData : normalizeSeedRows(HEALTH_DATA)
+      const merged = [...existingRows]
+      parsedRows.forEach(newRow => {
+        const idx = merged.findIndex(r => r.weekId === newRow.weekId)
+        if (idx >= 0) merged[idx] = newRow
+        else merged.push(newRow)
+      })
+      merged.sort((a, b) => b.weekId.localeCompare(a.weekId))
+      setSyncedHealthData(merged)
       setLastSync(new Date().toISOString())
     } catch (error) {
       setSyncError(error.message || 'Failed to sync from Strava.')
@@ -216,45 +146,104 @@ export default function HealthPage() {
   }
 
   return (
-    <div className="space-y-6 rounded-xl bg-slate-950 p-4 text-white">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-5 p-4 text-white">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Health</h2>
-          <p className="text-sm text-slate-300">
-            ₪{INCENTIVE_CONFIG.healthRate} per session &bull; ₪{config.base} base + ₪{config.accelerator} accelerator / month
-          </p>
-          <p className="text-xs text-slate-400">
-            Last sync: {lastSync ? format(new Date(lastSync), 'PPpp') : 'Never'}
+          <p className="text-xs text-slate-500 mt-0.5">
+            ₪{INCENTIVE_CONFIG.healthRate}/session &bull; {lastSync ? `Synced ${format(new Date(lastSync), 'MMM d, h:mma')}` : 'Not synced'}
           </p>
         </div>
-        <Button onClick={handleSync} disabled={isSyncing} className="gap-2">
-          <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
-          {isSyncing ? 'Syncing...' : 'Sync from Strava'}
+        <Button onClick={handleSync} disabled={isSyncing} size="sm" className="gap-2">
+          <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+          {isSyncing ? 'Syncing...' : 'Sync Strava'}
         </Button>
       </div>
 
-      {syncError && <p className="text-sm text-red-300">{syncError}</p>}
+      {syncError && (
+        <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-300">
+          {syncError}
+        </div>
+      )}
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard icon={Waves} label="Total Swims" value={totals.swims} color="text-blue-400" />
-        <StatCard icon={Dumbbell} label="Weight Training" value={totals.weightTraining} color="text-purple-400" />
-        <StatCard icon={Activity} label="Total Sessions" value={totals.totalSessions} color="text-green-400" />
-        <StatCard icon={TrendingUp} label="Swim Distance" value={formatDistance(totals.totalDistance)} color="text-cyan-400" />
-        <StatCard icon={Clock} label="Moving Time" value={formatDuration(totals.totalMovingTime)} color="text-amber-400" />
-        <StatCard icon={Zap} label="Total Incentive" value={`₪${totals.incentive}`} color="text-teal-400" />
-      </div>
+      {/* This Month */}
+      <Card className="border border-slate-800 bg-slate-900/60 p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar size={14} className="text-slate-400" />
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{monthLabel}</span>
+          <span className="ml-auto text-xs text-teal-400 font-semibold">₪{monthTotals.incentive} earned</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Waves size={13} className="text-blue-400" />
+              <span className="text-xs text-slate-500">Swims</span>
+            </div>
+            <p className="text-2xl font-bold text-blue-400">{monthTotals.swims}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Dumbbell size={13} className="text-purple-400" />
+              <span className="text-xs text-slate-500">Weights</span>
+            </div>
+            <p className="text-2xl font-bold text-purple-400">{monthTotals.weightTraining}</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <Zap size={13} className="text-amber-400" />
+              <span className="text-xs text-slate-500">Sessions</span>
+            </div>
+            <p className="text-2xl font-bold text-amber-400">{monthTotals.totalSessions}</p>
+          </div>
+        </div>
+        {monthTotals.totalMovingTime > 0 && (
+          <p className="text-center text-xs text-slate-500 mt-3">{formatDuration(monthTotals.totalMovingTime)} total moving time</p>
+        )}
+      </Card>
 
-      <div>
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Current Week</h3>
-        <CurrentWeekCard week={currentWeek} />
-      </div>
+      {/* Current Week */}
+      {currentWeek ? (
+        <Card className="border border-teal-500/20 bg-teal-500/5 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-teal-400 uppercase tracking-wider">This Week</span>
+            <span className="text-xs text-teal-300 font-semibold">₪{currentWeek.incentiveValue}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <p className="text-xl font-bold text-blue-400">{currentWeek.swims}</p>
+              <p className="text-xs text-slate-500">Swims</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold text-purple-400">{currentWeek.weightTraining}</p>
+              <p className="text-xs text-slate-500">Weights</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xl font-bold text-amber-400">{currentWeek.totalSessions}</p>
+              <p className="text-xs text-slate-500">Sessions</p>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="border border-slate-800 bg-slate-900/40 p-4 text-center">
+          <p className="text-slate-500 text-sm">No activity this week yet</p>
+        </Card>
+      )}
 
+      {/* Past Weeks */}
       {pastWeeks.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Previous Weeks</h3>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Previous Weeks</p>
+          <div className="space-y-2">
             {pastWeeks.map(week => (
-              <WeekRow key={week.weekId} week={week} />
+              <div key={week.weekId} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-900/40 border border-slate-800/60">
+                <span className="text-xs text-slate-500">{week.weekId}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-slate-400"><span className="text-blue-400 font-medium">{week.swims}</span> swim</span>
+                  <span className="text-xs text-slate-400"><span className="text-purple-400 font-medium">{week.weightTraining}</span> weights</span>
+                  <span className="text-xs text-teal-400 font-semibold">₪{week.incentiveValue}</span>
+                </div>
+              </div>
             ))}
           </div>
         </div>
