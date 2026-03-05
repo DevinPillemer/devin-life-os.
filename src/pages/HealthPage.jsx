@@ -96,7 +96,7 @@ export default function HealthPage() {
         const ws = getWeekStartDate(w.weekId)
         // Include week if it has any overlap with this month
         // (week starts on or after month start, OR is the current week)
-        return ws >= monthStart || w.weekId === currentWeekId
+        const weekEnd = new Date(ws); weekEnd.setDate(weekEnd.getDate() + 6); return weekEnd >= monthStart || w.weekId === currentWeekId
       } catch {
         return false
       }
