@@ -148,7 +148,7 @@ export default function DailyHabitsPage() {
         <StatPill icon={CheckCircle2} label="Completed" value={`${completedCount}/${entries.length}`} color="text-green-400" />
         <StatPill icon={Zap} label="Points Today" value={`${completedPoints}/${dailyMaxPoints}`} color="text-amber-400" />
         <StatPill icon={Trophy} label="Score" value={`${pct}%`} color={pct >= 80 ? 'text-teal-400' : pct >= 50 ? 'text-yellow-400' : 'text-slate-400'} />
-        <StatPill icon={Clock} label="Monthly Reward" value={`\u20aa${monthlyReward}`} color="text-teal-400" />
+        <StatPill icon={Clock} label="Monthly Reward" value={`₪${monthlyReward}`} color="text-teal-400" />
       </div>
 
       {/* Progress Bar */}
