@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getISOWeek, getISOWeekYear } from 'date-fns'
 import { Activity, BookOpen, CheckCircle2, Dumbbell, Flame, Goal, Heart, Sparkles, Target, TrendingUp, Wallet, Waves, Zap } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,10 +15,7 @@ const formatCurrency = (v) => '\u20AA' + (v || 0).toLocaleString()
 
 function getCurrentWeekId() {
   const now = new Date()
-  const startOfYear = new Date(now.getFullYear(), 0, 1)
-  const dayOfYear = Math.floor((now - startOfYear) / 86400000)
-  const weekNum = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7)
-  return `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
+  return `${getISOWeekYear(now)}-W${String(getISOWeek(now)).padStart(2, '0')}`
 }
 
 function normalizeSeedHealth(rows) {
@@ -68,7 +66,7 @@ export default function HomePage() {
   }, [syncedHealthData])
 
   const currentWeekId = getCurrentWeekId()
-  const currentWeek = healthRows.find(w => w.weekId === currentWeekId) || healthRows[0] || null
+  const currentWeek = healthRows.find(w => w.weekId === currentWeekId) || { swims: 0, weightTraining: 0, totalSessions: 0, incentiveValue: 0 }
   const totalSessions = currentWeek ? (currentWeek.swims || 0) + (currentWeek.weightTraining || currentWeek.hiit || 0) : 0
 
   // Goals: read from localStorage or fall back to seed data
@@ -95,9 +93,10 @@ export default function HomePage() {
       return s
     }, 0)
     const totalMilestones = COURSES.reduce((s, c) => s + c.modules.length, 0)
-    const earned = Math.min(INCENTIVE_CONFIG.sections.learning.base, milestones * 10)
-    const accelerator = completed >= 7 ? INCENTIVE_CONFIG.sections.learning.accelerator : 0
-    return { completed, inProgress, total, milestones, totalMilestones, earned, accelerator, sectionTotal: earned + accelerator }
+    const earned = 0 // Monthly learning incentive needs proper tracking
+    const accelerator = 0
+    const hasMonthlyData = false
+    return { completed, inProgress, total, milestones, totalMilestones, earned, accelerator, sectionTotal: 0, hasMonthlyData }
   }, [])
 
   // Incentive calculations
@@ -210,13 +209,20 @@ export default function HomePage() {
               <span className="flex items-center gap-1.5 text-sm font-semibold"><BookOpen size={14} className="text-blue-400" /> Learning</span>
               <span className="text-emerald-400 text-sm font-bold">{formatCurrency(learningStats.sectionTotal)}</span>
             </div>
+            {learningStats.hasMonthlyData ? (
             <div className="space-y-1.5 text-xs text-slate-400">
               <div className="flex justify-between"><span><CheckCircle2 size={12} className="inline mr-1" />Courses completed</span><span className="text-white font-medium">{learningStats.completed}/{learningStats.total}</span></div>
               <div className="flex justify-between"><span><TrendingUp size={12} className="inline mr-1" />In progress</span><span className="text-white font-medium">{learningStats.inProgress}</span></div>
               <div className="flex justify-between"><span><Zap size={12} className="inline mr-1" />Milestones done</span><span className="text-white font-medium">{learningStats.milestones}/{learningStats.totalMilestones}</span></div>
             </div>
+            ) : (
+              <div>
+                <p className="text-slate-500 text-sm">—</p>
+                <p className="text-[10px] text-slate-600 mt-1">Sync to load monthly learning data</p>
+              </div>
+            )}
             <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden mt-3">
-              <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" style={{ width: `${Math.round((learningStats.milestones / learningStats.totalMilestones) * 100)}%` }} />
+              <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" style={{ width: `${learningStats.hasMonthlyData ? Math.round((learningStats.milestones / learningStats.totalMilestones) * 100) : 0}%` }} />
             </div>
           </Card>
         </Link>
