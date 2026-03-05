@@ -32,7 +32,6 @@ export default function DailyHabitsPage() {
   const [habits, setHabits] = useLocalStorage('habitify-habits-data', [])
   const [syncError, setSyncError] = useState(null)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [rawDebug, setRawDebug] = useState(null)
 
   const apiKey = import.meta.env.VITE_HABITIFY_API_KEY
 
@@ -92,7 +91,6 @@ export default function DailyHabitsPage() {
       return
     }
     setSyncError(null)
-    setRawDebug(null)
     setIsSyncing(true)
     try {
       const todayDate = format(new Date(), 'yyyy-MM-dd')
@@ -107,7 +105,6 @@ export default function DailyHabitsPage() {
       const responseText = await res.text()
 
       if (!res.ok) {
-        setRawDebug(`HTTP ${res.status}: ${responseText.substring(0, 200)}`)
         throw new Error(`Habitify API error (${res.status}): ${responseText.substring(0, 100)}`)
       }
 
@@ -115,20 +112,17 @@ export default function DailyHabitsPage() {
       try {
         payload = JSON.parse(responseText)
       } catch {
-        setRawDebug(`Non-JSON response: ${responseText.substring(0, 200)}`)
         throw new Error('Could not parse Habitify response as JSON')
       }
 
       const habitsArray = Array.isArray(payload) ? payload : (payload?.data || [])
 
       if (!Array.isArray(habitsArray) || habitsArray.length === 0) {
-        setRawDebug(`Parsed payload keys: ${Object.keys(payload || {}).join(', ')} | Raw: ${responseText.substring(0, 300)}`)
         throw new Error(`No habits returned. Got: ${Object.keys(payload || {}).join(', ')}`)
       }
 
       // Show debug info about what we got
       const completedOnes = habitsArray.filter(h => h.status === 'completed' || h.status === 'passed' || h.is_done === true)
-      setRawDebug(`Got ${habitsArray.length} habits, ${completedOnes.length} completed. Sample: ${JSON.stringify(habitsArray[0]).substring(0, 150)}`)
 
       setHabits(habitsArray)
       setLastSync(new Date().toISOString())
@@ -165,11 +159,6 @@ export default function DailyHabitsPage() {
         </div>
       )}
 
-      {rawDebug && (
-        <div className="rounded-lg bg-slate-800/60 border border-slate-700 p-3 text-xs text-slate-400 font-mono break-all">
-          <strong className="text-slate-300">Debug:</strong> {rawDebug}
-        </div>
-      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
