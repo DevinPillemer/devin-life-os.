@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Wallet, BookOpen, Repeat, HeartPulse, Target, Landmark } from 'lucide-react'
+import { Wallet, BookOpen, Repeat, HeartPulse, Target, Landmark, LayoutDashboard } from 'lucide-react'
 
 const nav = [
+  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
   { to: '/walletdashboard', label: 'Wallet', icon: Wallet },
   { to: '/learning', label: 'Learning', icon: BookOpen },
   { to: '/dailyhabits', label: 'Daily Habits', icon: Repeat },
@@ -15,9 +16,17 @@ export default function Layout() {
       <aside className="w-72 border-r border-gray-800 bg-gray-900 p-4">
         <h1 className="mb-4 text-2xl font-bold text-blue-400">Floopify</h1>
         <div className="space-y-2">
-          {nav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 ${isActive ? 'bg-teal-500 text-gray-950' : 'hover:bg-gray-800'}`}>
-              <Icon size={18} /> {label}
+          {nav.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-lg px-3 py-2 ${isActive ? 'bg-teal-500 text-gray-950' : 'hover:bg-gray-800'}`
+              }
+            >
+              <Icon size={18} />
+              {label}
             </NavLink>
           ))}
           <div className="pt-2 text-sm text-blue-400">Finance</div>
