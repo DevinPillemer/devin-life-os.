@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './Layout'
-import HomePage from '@/pages/HomePage'
+import HomeDashboard from '@/pages/HomeDashboard'
 import DashboardPage from '@/pages/DashboardPage'
 import DailyHabitsPage from '@/pages/DailyHabitsPage'
 import HealthPage from '@/pages/HealthPage'
@@ -24,7 +24,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-        <Route index element={<HomePage />} />
+        <Route index element={<HomeDashboard />} />
+        <Route path="home" element={<HomeDashboard />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="dailyhabits" element={<DailyHabitsPage />} />
         <Route path="health" element={<HealthPage />} />
@@ -43,7 +44,7 @@ export default function App() {
         <Route path="learning/course/:courseId/quiz" element={<LearningQuizPage />} />
         <Route path="learning/course/:courseId/exercise" element={<LearningExercisePage />} />
         <Route path="learning/course/:courseId/results" element={<LearningResultsPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Route>
     </Routes>
   )

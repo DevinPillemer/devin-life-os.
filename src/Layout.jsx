@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Wallet, BookOpen, Repeat, HeartPulse, Target, Landmark } from 'lucide-react'
+import { House, Wallet, BookOpen, Repeat, HeartPulse, Target, Landmark } from 'lucide-react'
 
 const nav = [
+  { to: '/home', label: 'Home', icon: House },
   { to: '/walletdashboard', label: 'Wallet', icon: Wallet },
   { to: '/learning', label: 'Learning', icon: BookOpen },
   { to: '/dailyhabits', label: 'Daily Habits', icon: Repeat },

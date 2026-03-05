@@ -215,7 +215,7 @@ export default function FoodProfileCard({ syncData }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
             <div>
-              <div className="font-medium text-purple-200">Body Fat <2% 89kgs</div>
+              <div className="font-medium text-purple-200">Body Fat &lt;2% 89kgs</div>
               <div className="text-sm text-gray-400">Primary fitness goal</div>
             </div>
             <div className="text-right">
