@@ -16,11 +16,11 @@ const categoryColors = {
 
 function StatPill({ icon: Icon, label, value, color }) {
   return (
-    <div className="flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+    <div className="flex items-center gap-2 bg-card/60 border border-border/50 rounded-xl px-4 py-3">
       <Icon size={16} className={color} />
       <div>
         <p className={`text-lg font-bold ${color}`}>{value}</p>
-        <p className="text-xs text-slate-500">{label}</p>
+        <p className="text-xs text-muted">{label}</p>
       </div>
     </div>
   )
@@ -126,10 +126,10 @@ export default function DailyHabitsPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold">Daily Habits</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Last sync: {lastSync ? format(new Date(lastSync), 'PPpp') : 'Never'} &bull;{' '}
             API: {apiKey ? <span className="text-green-400">configured</span> : <span className="text-red-400">missing</span>}
-            {totalFromAPI > 0 && <span className="text-slate-500"> &bull; {totalFromAPI} habits loaded</span>}
+            {totalFromAPI > 0 && <span className="text-muted"> &bull; {totalFromAPI} habits loaded</span>}
           </p>
         </div>
         <Button onClick={handleSync} disabled={isSyncing} className="gap-2">
@@ -148,15 +148,15 @@ export default function DailyHabitsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatPill icon={CheckCircle2} label="Completed" value={totalFromAPI > 0 ? `${completedCount}/${totalFromAPI}` : `0/--`} color="text-green-400" />
         <StatPill icon={Zap} label="Points Today" value={`${completedPoints}/${dailyMaxPoints}`} color="text-amber-400" />
-        <StatPill icon={Trophy} label="Score" value={`${pct}%`} color={pct >= 80 ? 'text-teal-400' : pct >= 50 ? 'text-yellow-400' : 'text-slate-400'} />
-        <StatPill icon={Clock} label="Monthly Reward" value={`₪${monthlyReward}`} color="text-teal-400" />
+        <StatPill icon={Trophy} label="Score" value={`${pct}%`} color={pct >= 80 ? 'text-primary' : pct >= 50 ? 'text-yellow-400' : 'text-muted'} />
+        <StatPill icon={Clock} label="Monthly Reward" value={`₪${monthlyReward}`} color="text-primary" />
       </div>
 
       {/* Progress Bar */}
-      <Card className="border border-slate-800 bg-slate-900/60 p-4">
+      <Card className="border border-border/50 bg-card/60 p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-slate-300">Today's Progress</span>
-          <span className="text-sm font-bold text-teal-400">{pct}%</span>
+          <span className="text-sm font-bold text-primary">{pct}%</span>
         </div>
         <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
           <div
@@ -168,7 +168,7 @@ export default function DailyHabitsPage() {
             style={{ width: `${pct}%` }}
           />
         </div>
-        <div className="flex justify-between mt-1 text-xs text-slate-500">
+        <div className="flex justify-between mt-1 text-xs text-muted">
           <span>0 pts</span>
           <span>{dailyMaxPoints} pts max</span>
         </div>
@@ -176,10 +176,10 @@ export default function DailyHabitsPage() {
 
       {/* No data state */}
       {totalFromAPI === 0 && !isSyncing && (
-        <Card className="border border-slate-700 bg-slate-900/40 p-6 text-center">
-          <RefreshCw size={24} className="mx-auto mb-2 text-slate-500" />
+        <Card className="border border-border/30 bg-card/40 p-6 text-center">
+          <RefreshCw size={24} className="mx-auto mb-2 text-muted" />
           <p className="text-slate-300 font-medium">No habit data loaded yet</p>
-          <p className="text-slate-500 text-sm mt-1">Click "Sync Now" to fetch today's habits from Habitify</p>
+          <p className="text-muted text-sm mt-1">Click "Sync Now" to fetch today's habits from Habitify</p>
         </Card>
       )}
 
@@ -192,14 +192,14 @@ export default function DailyHabitsPage() {
           const catCompleted = categoryHabits.filter(h => h.isCompleted).length
           const catTotal = categoryHabits.length
           return (
-            <Card key={category} className="border border-slate-800 bg-slate-900/60 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/60">
+            <Card key={category} className="border border-border/50 bg-card/60 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border/50/60">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${colors.dot}`} />
                   <span className={`text-xs font-semibold uppercase tracking-wider ${colors.header}`}>{category}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">{catCompleted}/{catTotal}</span>
+                  <span className="text-xs text-muted">{catCompleted}/{catTotal}</span>
                   <span className={`text-xs rounded-full px-2 py-0.5 ${colors.badge}`}>
                     {catTotal > 0 ? Math.round((catCompleted / catTotal) * 100) : 0}%
                   </span>
@@ -218,11 +218,11 @@ export default function DailyHabitsPage() {
                         ? <CheckCircle2 size={15} className="text-green-400 flex-shrink-0" />
                         : <Circle size={15} className={`flex-shrink-0 ${!isInAPI && totalFromAPI > 0 ? 'text-slate-700' : 'text-slate-600'}`} />
                       }
-                      <span className={`text-sm ${isCompleted ? 'text-white' : 'text-slate-400'}`}>
+                      <span className={`text-sm ${isCompleted ? 'text-white' : 'text-muted'}`}>
                         {habit}
                       </span>
                     </div>
-                    <span className={`text-xs font-medium ${isCompleted ? 'text-green-400' : 'text-slate-500'}`}>
+                    <span className={`text-xs font-medium ${isCompleted ? 'text-green-400' : 'text-muted'}`}>
                       {points} pts
                     </span>
                   </div>

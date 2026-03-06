@@ -12,29 +12,37 @@ const nav = [
 
 export default function Layout() {
   return (
-    <div className="flex min-h-screen bg-gray-950 text-gray-100">
-      <aside className="w-72 border-r border-gray-800 bg-gray-900 p-4">
-        <h1 className="mb-4 text-2xl font-bold text-blue-400">Floopify</h1>
-        <div className="space-y-2">
+    <div className="flex min-h-screen bg-background text-gray-100">
+      <aside className="w-64 border-r border-border/50 bg-[#080C18] p-5 flex flex-col">
+        <h1 className="mb-8 text-xl font-bold text-primary tracking-tight">Floopify</h1>
+        <div className="space-y-1">
           {nav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex items-center gap-2 rounded-lg px-3 py-2 ${isActive ? 'bg-teal-500 text-gray-950' : 'hover:bg-gray-800'}`
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-light hover:text-white hover:bg-white/5'}`
               }
             >
               <Icon size={18} />
               {label}
             </NavLink>
           ))}
-          <div className="pt-2 text-sm text-blue-400">Finance</div>
-          <NavLink to="/financialdashboards?type=personal" className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-800"><Landmark size={18}/>Personal</NavLink>
-          <NavLink to="/financialdashboards?type=family" className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-800"><Landmark size={18}/>Family</NavLink>
+        </div>
+        <div className="mt-6 pt-4 border-t border-border/30">
+          <p className="text-xs text-muted mb-2 px-3">Finance</p>
+          <NavLink to="/financialdashboards?type=personal" className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-light hover:text-white hover:bg-white/5'}`}>
+            <Landmark size={18} />
+            Personal
+          </NavLink>
+          <NavLink to="/financialdashboards?type=family" className={({ isActive }) => `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-light hover:text-white hover:bg-white/5'}`}>
+            <Landmark size={18} />
+            Family
+          </NavLink>
         </div>
       </aside>
-      <main className="flex-1 p-6"><Outlet /></main>
+      <main className="flex-1 p-8 overflow-auto"><Outlet /></main>
     </div>
   )
 }
