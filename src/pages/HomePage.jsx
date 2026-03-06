@@ -206,7 +206,7 @@ export default function HomePage() {
         <Link to="/dashboard">
           <Card className="bg-slate-900/80 border-slate-800 p-4 hover:border-slate-600 transition-colors h-full">
             <div className="flex items-center justify-between mb-3">
-              <span className="flex items-center gap-1.5 text-sm font-semibold"><BookOpen size={14} className="text-blue-400" /> Learning</span>
+              <span className="flex items-center gap-1.5 text-sm font-semibold"><BookOpen size={14} className="text-primary" /> Learning</span>
               <span className="text-emerald-400 text-sm font-bold">{formatCurrency(learningStats.sectionTotal)}</span>
             </div>
             {learningStats.hasMonthlyData ? (
