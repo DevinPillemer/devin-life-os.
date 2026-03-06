@@ -2,5 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-gray-950 text-gray-100 font-sans; }
-.card { @apply rounded-xl border border-gray-800 bg-gray-900; }
+body {
+  @apply bg-background text-gray-100 font-sans antialiased;
+}
+
+.card {
+  @apply rounded-xl border border-border/50 bg-card;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E2A3A;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2d3f54;
+}
