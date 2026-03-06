@@ -172,15 +172,15 @@ export default function HealthPage() {
         <div className="flex items-center gap-2 mb-4">
           <Calendar size={14} className="text-slate-400" />
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{monthLabel}</span>
-          <span className="ml-auto text-xs text-teal-400 font-semibold">₪{monthTotals.incentive} earned</span>
+          <span className="ml-auto text-xs text-primary font-semibold">₪{monthTotals.incentive} earned</span>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
-              <Waves size={13} className="text-blue-400" />
+              <Waves size={13} className="text-primary" />
               <span className="text-xs text-slate-500">Swims</span>
             </div>
-            <p className="text-2xl font-bold text-blue-400">{monthTotals.swims}</p>
+            <p className="text-2xl font-bold text-primary">{monthTotals.swims}</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 mb-1">
@@ -204,14 +204,14 @@ export default function HealthPage() {
 
       {/* Current Week */}
       {currentWeek ? (
-        <Card className="border border-teal-500/20 bg-teal-500/5 p-4">
+        <Card className="border border-teal-500/20 bg-primary/5 p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-teal-400 uppercase tracking-wider">This Week</span>
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">This Week</span>
             <span className="text-xs text-teal-300 font-semibold">₪{currentWeek.incentiveValue}</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
-              <p className="text-xl font-bold text-blue-400">{currentWeek.swims}</p>
+              <p className="text-xl font-bold text-primary">{currentWeek.swims}</p>
               <p className="text-xs text-slate-500">Swims</p>
             </div>
             <div className="text-center">
@@ -239,9 +239,9 @@ export default function HealthPage() {
               <div key={format(getWeekStartDate(week.weekId), 'MMM d')} className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-900/40 border border-slate-800/60">
                 <span className="text-xs text-slate-500">{format(getWeekStartDate(week.weekId), 'MMM d')}</span>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs text-slate-400"><span className="text-blue-400 font-medium">{week.swims}</span> swim</span>
+                  <span className="text-xs text-slate-400"><span className="text-primary font-medium">{week.swims}</span> swim</span>
                   <span className="text-xs text-slate-400"><span className="text-purple-400 font-medium">{week.weightTraining}</span> weights</span>
-                  <span className="text-xs text-teal-400 font-semibold">₪{week.incentiveValue}</span>
+                  <span className="text-xs text-primary font-semibold">₪{week.incentiveValue}</span>
                 </div>
               </div>
             ))}
