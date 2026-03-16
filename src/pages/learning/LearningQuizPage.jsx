@@ -175,6 +175,8 @@ export default function LearningQuizPage() {
 
   const formatTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
+ 
+
   return (
     <div className="min-h-[calc(100vh-7rem)] rounded-3xl border border-slate-800 bg-[#0f1117] p-5 text-slate-200 md:p-8">
       <div className="mb-6 space-y-3">
