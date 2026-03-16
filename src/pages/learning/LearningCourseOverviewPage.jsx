@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { List, Pause, Play, TextCursorInput } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -81,6 +81,7 @@ const FALLBACK_READER = {
 
 export default function LearningCourseOverviewPage() {
   const { courseId } = useParams()
+  const navigate = useNavigate()
   const courses = read('floopify_courses', [])
   const selected = courses.find((item) => item.course.id === courseId)?.course
 
@@ -147,6 +148,12 @@ export default function LearningCourseOverviewPage() {
                 {item.label}
               </button>
             ))}
+            <button
+              onClick={() => navigate(`/learning/course/${courseId}/quiz`)}
+              className="w-full rounded-lg border border-emerald-300/60 bg-emerald-500/10 px-3 py-2 text-left text-sm text-emerald-200 transition hover:bg-emerald-500/20"
+            >
+              Quiz
+            </button>
           </div>
         </Card>
 
@@ -174,6 +181,14 @@ export default function LearningCourseOverviewPage() {
                 <p key={paragraph} className="text-slate-800">{paragraph}</p>
               ))}
             </div>
+            {chapter.id === 'final-summary' ? (
+              <Button
+                onClick={() => navigate(`/learning/course/${courseId}/quiz`)}
+                className="mt-8 bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+              >
+                Take the Quiz
+              </Button>
+            ) : null}
           </article>
         </Card>
       </div>
