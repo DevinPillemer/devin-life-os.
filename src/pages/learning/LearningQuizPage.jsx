@@ -125,26 +125,57 @@ export default function LearningQuizPage() {
   const progress = useMemo(() => ((current + 1) / Math.max(1, questions.length)) * 100, [current, questions.length])
 
   const persistSubmit = async () => {
-    if (!course || isSubmitting || result) return
+    if (isSubmitting || result) return
     setIsSubmitting(true)
-    const llmResult = await gradeWithLLM(course, answers, null)
-    const scored = llmResult.quiz || gradeQuiz(course, answers)
+
+    let scored
+    let source = 'local'
+
+    if (course) {
+      const llmResult = await gradeWithLLM(course, answers, null)
+      scored = llmResult.quiz || gradeQuiz(course, answers)
+      source = llmResult.source
+    } else {
+      const breakdown = FALLBACK_QUIZ.questions.map((question) => {
+        const userAnswer = answers?.[question.qid] || ''
+        return {
+          qid: question.qid,
+          prompt: question.prompt,
+          userAnswer,
+          answerKey: question.answer_key,
+          isCorrect: userAnswer === question.answer_key,
+          explanation: question.explanation
+        }
+      })
+      const correct = breakdown.filter((item) => item.isCorrect).length
+      const total = FALLBACK_QUIZ.questions.length
+      const scorePercent = Math.round((correct / total) * 100)
+      scored = {
+        scorePercent,
+        passed: scorePercent >= FALLBACK_QUIZ.pass_score_percent,
+        correct,
+        total,
+        breakdown,
+        submittedAt: new Date().toISOString()
+      }
+    }
+
     const map = read('floopify_quiz_results', {})
-    map[courseId] = { ...scored, source: llmResult.source }
+    map[courseId] = { ...scored, source }
     localStorage.setItem('floopify_quiz_results', JSON.stringify(map))
-    trackEvent('quiz_completed', { courseId, score: scored.scorePercent, passed: scored.passed, source: llmResult.source })
+    trackEvent('quiz_completed', { courseId, score: scored.scorePercent, passed: scored.passed, source })
     setResult(scored)
     setIsSubmitting(false)
   }
 
   useEffect(() => {
-    if (remaining === 0 && course && !result) persistSubmit()
+    if (remaining === 0 && !result) persistSubmit()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remaining, course, result])
-
-  if (!course) return <Card className="border-slate-800 bg-slate-900 p-6 text-slate-200">Quiz unavailable.</Card>
+  }, [remaining, result])
 
   const formatTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+
+ 
 
   return (
     <div className="min-h-[calc(100vh-7rem)] rounded-3xl border border-slate-800 bg-[#0f1117] p-5 text-slate-200 md:p-8">
