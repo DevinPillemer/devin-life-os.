@@ -1,6 +1,6 @@
-# Morning Email Stack — 6:00 AM Israel time, every day (7 days/week)
+# Morning Email Stack — 6:00 AM Israel time, Mon–Fri (Claude Code, claude-sonnet-4-6)
 CRON_TZ=Asia/Jerusalem
-0 6 * * * /bin/bash /root/projects/morning-emails/run_morning_emails.sh >> /root/projects/morning-emails/logs/morning_email.log 2>&1
+0 6 * * 1-5 /bin/bash /root/projects/morning-emails/config/run_morning_claude.sh >> /root/projects/morning-emails/logs/morning_email.log 2>&1
 
 */5 * * * * /root/brubot-monitor.sh
 0 9 * * * openclaw system heartbeat 2>/dev/null

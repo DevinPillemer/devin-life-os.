@@ -1,0 +1,13 @@
+{
+  "model": "claude-sonnet-4-6",
+  "permissions": {
+    "allow": [
+      "Bash(git pull origin morning-emails)",
+      "Bash(git pull:*)",
+      "Bash(python3 morning_email_stack.py)",
+      "Bash(python3 morning_email_stack.py --test)",
+      "Bash(source /root/.openclaw/.env:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  }
+}
