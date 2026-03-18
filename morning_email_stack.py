@@ -82,15 +82,25 @@ def send_email(subject, html_body):
         pass  # tracking handled by caller
         return None
 
-def gpt(prompt, timeout=90, max_tokens=2000):
-    req = urllib.request.Request('https://api.openai.com/v1/chat/completions',
-        data=json.dumps({'model': 'gpt-4o-mini', 'messages': [{'role':'user','content':prompt}], 'temperature': 0.3, 'max_tokens': max_tokens}).encode(), method='POST')
-    req.add_header('Authorization', f'Bearer {OPENAI_KEY}')
-    req.add_header('Content-Type', 'application/json')
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        raw = json.loads(r.read())['choices'][0]['message']['content'].strip()
-    if raw.startswith('```'): raw = raw.split('\n',1)[1].rsplit('\n',1)[0]
-    return raw
+def gpt(prompt, timeout=120, max_tokens=2000, max_retries=3):
+    """Call GPT with exponential backoff retry logic."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            req = urllib.request.Request('https://api.openai.com/v1/chat/completions',
+                data=json.dumps({'model': 'gpt-4o-mini', 'messages': [{'role':'user','content':prompt}], 'temperature': 0.3, 'max_tokens': max_tokens}).encode(), method='POST')
+            req.add_header('Authorization', f'Bearer {OPENAI_KEY}')
+            req.add_header('Content-Type', 'application/json')
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                raw = json.loads(r.read())['choices'][0]['message']['content'].strip()
+            if raw.startswith('```'): raw = raw.split('\n',1)[1].rsplit('\n',1)[0]
+            return raw
+        except urllib.error.URLError as e:
+            if attempt < max_retries:
+                wait = 2 ** attempt  # exponential backoff: 2, 4, 8 seconds
+                print(f"[{ts()}] ⚠️  GPT call failed (attempt {attempt}/{max_retries}): {e}. Retrying in {wait}s...")
+                time.sleep(wait)
+            else:
+                raise
 
 def get_sheet(range_name):
     enc = urllib.parse.quote(range_name)
