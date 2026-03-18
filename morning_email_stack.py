@@ -3,8 +3,12 @@
 BruBot Morning Email Stack - 9 emails, 6 AM Israel time daily
 Each email includes the original content + a trending insight tip appended at the end.
 """
-import json, urllib.request, urllib.parse, base64, time, email.mime.text, email.mime.multipart, os, re, xml.etree.ElementTree as ET, subprocess
+import json, urllib.request, urllib.parse, base64, time, email.mime.text, email.mime.multipart, os, re, xml.etree.ElementTree as ET, subprocess, argparse
 from datetime import datetime
+
+def ts():
+    """Return current time in HH:MM:SS format for logging."""
+    return datetime.now().strftime('%H:%M:%S')
 
 OPENAI_KEY = open(os.path.expanduser('~/.config/openai/api_key')).read().strip()
 NOTION_KEY = re.search(r'NOTION_API_KEY=(.+)', open(os.path.expanduser('~/.openclaw/.env')).read()).group(1).strip()
@@ -37,10 +41,25 @@ def get_fresh_token():
         access_token = get_google_token()
     return access_token
 
-access_token = get_google_token()
-print(f"✅ Google token refreshed at start")
+try:
+    access_token = get_google_token()
+    print(f"[{ts()}] ✅ Google token refreshed at start")
+except Exception as e:
+    print(f"[{ts()}] ⚠️  Google token refresh failed at startup: {e}")
+    print(f"[{ts()}] ⚠️  Gmail-dependent emails may fail. Continuing...")
+    # Continue with potentially invalid token; try/except blocks will catch failures per-email
 
 _email_results = []
+
+# ─── CLI ARGS ───
+parser = argparse.ArgumentParser(description='BruBot Morning Email Stack - sends 9 daily briefing emails')
+parser.add_argument('--test', action='store_true', help='Run immediately without time-gating (default: 6 AM Israel time)')
+args = parser.parse_args()
+
+if args.test:
+    print(f"[{ts()}] 🧪 TEST MODE - running all emails now")
+else:
+    print(f"[{ts()}] 📅 NORMAL MODE - emails will send at 6 AM Israel time")
 
 def send_email(subject, html_body):
     try:
@@ -56,11 +75,11 @@ def send_email(subject, html_body):
         req.add_header('Content-Type', 'application/json')
         with urllib.request.urlopen(req, timeout=15) as r:
             result = json.loads(r.read()).get('id')
-        _email_results.append(('ok', subject))
+        pass  # tracking handled by caller
         return result
     except Exception as _se:
         print(f"⚠️ send_email FAILED for '{subject}': {_se}")
-        _email_results.append(('fail', subject))
+        pass  # tracking handled by caller
         return None
 
 def gpt(prompt, timeout=90, max_tokens=2000):
@@ -491,7 +510,12 @@ health_html += '</div>'  # end dark card
 t=tips['health']
 health_html+=trending_tip_block(t.get('emoji','🏋️'),t.get('color','#28a745'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 health_html+='</div></body></html>'
-send_email('🏃 Health Insights Dashboard', health_html); print("✅ 1/9 Health")
+try:
+    send_email('🏃 Health Insights Dashboard', health_html); print("✅ 1/9 Health")
+    _email_results.append(("ok", "🏃 Health Insights Dashboard"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 1/9 Health FAILED: {e}")
+    _email_results.append(("fail", "🏃 Health Insights Dashboard"))
 
 # ══════════════════════════════════════════
 # EMAIL 2: FINANCIAL DASHBOARD
@@ -574,7 +598,12 @@ if len(budget_raw)>1:
 t=tips['finance']
 fin_html+=trending_tip_block(t.get('emoji','📈'),t.get('color','#1f77b4'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 fin_html+='</div></body></html>'
-send_email('💰 Financial Dashboard - IBKR + Budget', fin_html); print("✅ 2/9 Financial")
+try:
+    send_email('💰 Financial Dashboard - IBKR + Budget', fin_html); print("✅ 2/9 Financial")
+    _email_results.append(("ok", "💰 Financial Dashboard - IBKR + Budget"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 2/9 Financial FAILED: {e}")
+    _email_results.append(("fail", "💰 Financial Dashboard - IBKR + Budget"))
 
 # ══════════════════════════════════════════
 # EMAIL 3: JOB ALERTS
@@ -644,7 +673,12 @@ jobs_html+='</table>'
 t=tips['jobs']
 jobs_html+=trending_tip_block(t.get('emoji','💼'),t.get('color','#0077b5'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 jobs_html+='</div></body></html>'
-send_email('💼 Job Alerts - Market Intelligence', jobs_html); print("✅ 3/9 Job Alerts")
+try:
+    send_email('💼 Job Alerts - Market Intelligence', jobs_html); print("✅ 3/9 Job Alerts")
+    _email_results.append(("ok", "💼 Job Alerts - Market Intelligence"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 3/9 Job Alerts FAILED: {e}")
+    _email_results.append(("fail", "💼 Job Alerts - Market Intelligence"))
 
 # ══════════════════════════════════════════
 # EMAIL 4: DAILY LEARNING (Top 5 Podcasts/YouTube)
@@ -711,7 +745,12 @@ for ep in top_ep[:5]:
 t=tips['learning']
 learn_html+=trending_tip_block(t.get('emoji','🎧'),t.get('color','#7b2d8b'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 learn_html+='</div></body></html>'
-send_email('🎧 Daily Learning - Top 5 Podcasts', learn_html); print("✅ 4/9 Learning")
+try:
+    send_email('🎧 Daily Learning - Top 5 Podcasts', learn_html); print("✅ 4/9 Learning")
+    _email_results.append(("ok", "🎧 Daily Learning - Top 5 Podcasts"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 4/9 Learning FAILED: {e}")
+    _email_results.append(("fail", "🎧 Daily Learning - Top 5 Podcasts"))
 
 # ══════════════════════════════════════════
 # EMAIL 5: NEWS DAILY - 15-20 diverse articles via Tavily
@@ -813,7 +852,12 @@ for cat,articles in by_cat.items():
 t=tips['news']
 news_html+=trending_tip_block(t.get('emoji','📰'),t.get('color','#e67e22'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 news_html+='</div></body></html>'
-send_email('📰 News Daily', news_html); print("✅ 5/9 News")
+try:
+    send_email('📰 News Daily', news_html); print("✅ 5/9 News")
+    _email_results.append(("ok", "📰 News Daily"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 5/9 News FAILED: {e}")
+    _email_results.append(("fail", "📰 News Daily"))
 
 # ══════════════════════════════════════════
 # EMAIL 6: FB DEALS - Live scrape via Vercel
@@ -901,7 +945,12 @@ else:
 t=tips['deals']
 deals_html+=trending_tip_block(t.get('emoji','🛒'),t.get('color','#e91e63'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 deals_html+='</div></body></html>'
-send_email('🛒 FB Deals of the Day', deals_html); print("✅ 6/9 FB Deals")
+try:
+    send_email('🛒 FB Deals of the Day', deals_html); print("✅ 6/9 FB Deals")
+    _email_results.append(("ok", "🛒 FB Deals of the Day"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 6/9 FB Deals FAILED: {e}")
+    _email_results.append(("fail", "🛒 FB Deals of the Day"))
 
 # ══════════════════════════════════════════
 # EMAIL 7: CALENDAR BRIEFING + INSIGHTS
@@ -1031,7 +1080,12 @@ cal_html = f'''<html><body style="font-family:-apple-system,Arial,sans-serif;bac
 t=tips['calendar']
 cal_html+=trending_tip_block(t.get('emoji','📅'),t.get('color','#17a2b8'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 cal_html+='</div></body></html>'
-send_email('📅 Calendar Briefing + Insights', cal_html); print("✅ 7/9 Calendar")
+try:
+    send_email('📅 Calendar Briefing + Insights', cal_html); print("✅ 7/9 Calendar")
+    _email_results.append(("ok", "📅 Calendar Briefing + Insights"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 7/9 Calendar FAILED: {e}")
+    _email_results.append(("fail", "📅 Calendar Briefing + Insights"))
 
 # ══════════════════════════════════════════
 # EMAIL 8: INBOX ZERO HERO
@@ -1059,7 +1113,12 @@ for e in ranked_emails[:10]:
 t=tips['inbox']
 inbox_html+=trending_tip_block(t.get('emoji','📬'),t.get('color','#6c757d'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 inbox_html+='</div></body></html>'
-send_email('📬 Inbox Zero Hero - Top 10 Curated', inbox_html); print("✅ 8/9 Inbox Zero")
+try:
+    send_email('📬 Inbox Zero Hero - Top 10 Curated', inbox_html); print("✅ 8/9 Inbox Zero")
+    _email_results.append(("ok", "📬 Inbox Zero Hero - Top 10 Curated"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 8/9 Inbox Zero FAILED: {e}")
+    _email_results.append(("fail", "📬 Inbox Zero Hero - Top 10 Curated"))
 
 # ══════════════════════════════════════════
 # EMAIL 9: DAILY GOALS PRIORITY
@@ -1085,11 +1144,21 @@ for g in ranked_goals:
 t=tips['goals']
 goals_html+=trending_tip_block(t.get('emoji','🎯'),t.get('color','#dc3545'),t['headline'],t['summary'],t['url'],t['why_relevant'])
 goals_html+='</div></body></html>'
-send_email('🎯 Daily Goals Priority', goals_html); print("✅ 9/9 Goals")
+try:
+    send_email('🎯 Daily Goals Priority', goals_html); print("✅ 9/9 Goals")
+    _email_results.append(("ok", "🎯 Daily Goals Priority"))
+except Exception as e:
+    print(f"[{ts()}] ❌ 9/9 Goals FAILED: {e}")
+    _email_results.append(("fail", "🎯 Daily Goals Priority"))
 
 ok_count = sum(1 for s, _ in _email_results if s == 'ok')
 fail_count = sum(1 for s, _ in _email_results if s == 'fail')
-print(f"\n✅ Morning email stack complete ({ok_count}/{len(_email_results)} emails sent)")
+print(f"\n[{ts()}] ═══════════════════════════════════════════")
+print(f"[{ts()}] ✅ MORNING EMAIL STACK COMPLETE")
+print(f"[{ts()}] Sent: {ok_count}/9 emails")
 if fail_count:
     failed_subjects = [subj for s, subj in _email_results if s == 'fail']
-    print(f"⚠️ Failed: {', '.join(failed_subjects)}")
+    print(f"[{ts()}] ❌ Failed ({fail_count}): {', '.join(failed_subjects)}")
+else:
+    print(f"[{ts()}] 🎉 All emails sent successfully!")
+print(f"[{ts()}] ═══════════════════════════════════════════")

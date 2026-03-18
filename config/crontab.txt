@@ -1,0 +1,18 @@
+*/5 * * * * /root/brubot-monitor.sh
+0 9 * * * openclaw system heartbeat 2>/dev/null
+@reboot /root/redeploy-sshwifty.sh >> /root/sshwifty-boot.log 2>&1
+0 0 1,3 * * python3 ~/.openclaw/workspace/skills/n8n-workflow-manager/scripts/n8n_cron_wrapper.py health-check
+0 6 1,4 * * python3 ~/.openclaw/workspace/skills/n8n-workflow-manager/scripts/n8n_cron_wrapper.py audit-all
+0 3 * * * /bin/bash /root/.openclaw/workspace/memory_maintenance.sh >> /root/.openclaw/workspace/memory_maintenance.log 2>&1
+15 3 * * * /usr/bin/curl -X POST -H "Content-Type: application/json" -d {message: Check my training load} http://localhost:8080/api/message
+30 3 * * * /usr/bin/curl -G "http://localhost:8080/api/desearch-web-search?query=Tel%20Aviv%20weather%20forecast%20tomorrow" > /root/.openclaw/workspace/weather_forecast.txt
+45 3 * * * /usr/bin/curl -G "http://localhost:8080/api/desearch-web-search?query=SaaS%20OR%20AI%20OR%20%22Miami%20real%20estate%22" > /root/.openclaw/workspace/news_headlines.txt
+0 6 * * * python3 /root/.openclaw/workspace/strava_query.py >> /root/.openclaw/workspace/strava_daily.log 2>&1
+0 5 * * * python3 /root/.openclaw/workspace/habitify_tracker_fixed.py >> /root/.openclaw/workspace/habits_daily.log 2>&1
+# Bru Bot Slack Integrations
+0 8,16 * * * cd /root/.openclaw/workspace && python3 slack_n8n_monitor.py >> logs/n8n_monitor_slack.log 2>&1
+0 6 * * * /usr/bin/python3 /root/.openclaw/workspace/backend_morning_briefing.py >> /root/.openclaw/workspace/logs/morning_briefing_slack.log 2>&1
+0 2 * * * /usr/bin/python3 /root/.openclaw/workspace/memory_maintenance.py >> /root/.openclaw/workspace/logs/memory_maintenance.log 2>&1
+30 23 * * * /root/.openclaw/workspace/daily-journal-publisher.sh >> /var/log/daily-journal.log 2>&1
+5 6 * * 0 python3 /root/.openclaw/workspace/weekly_digest.py >> /root/.openclaw/workspace/logs/weekly_digest.log 2>&1
+15 6 * * 0 /bin/bash /root/.openclaw/workspace/memory_archive_policy.sh >> /root/.openclaw/workspace/logs/memory_archive.log 2>&1
