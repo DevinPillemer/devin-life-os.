@@ -5,13 +5,15 @@ Each email includes the original content + a trending insight tip appended at th
 """
 import json, urllib.request, urllib.parse, base64, time, email.mime.text, email.mime.multipart, os, re, xml.etree.ElementTree as ET, subprocess, argparse
 from datetime import datetime
+import anthropic
 
 def ts():
     """Return current time in HH:MM:SS format for logging."""
     return datetime.now().strftime('%H:%M:%S')
 
-OPENAI_KEY = open(os.path.expanduser('~/.config/openai/api_key')).read().strip()
-NOTION_KEY = re.search(r'NOTION_API_KEY=(.+)', open(os.path.expanduser('~/.openclaw/.env')).read()).group(1).strip()
+_env_content = open(os.path.expanduser('~/.openclaw/.env')).read()
+ANTHROPIC_KEY = os.environ.get('ANTHROPIC_API_KEY') or re.search(r'ANTHROPIC_API_KEY=(.+)', _env_content).group(1).strip()
+NOTION_KEY = re.search(r'NOTION_API_KEY=(.+)', _env_content).group(1).strip()
 SHEETS_ID = '1PRwlbD23jpdn5W6PbE6flvwcQLGpk_HmWagCEruJIeE'
 TODAY = datetime.now().strftime('%B %d, %Y')
 
@@ -83,13 +85,14 @@ def send_email(subject, html_body):
         return None
 
 def gpt(prompt, timeout=90, max_tokens=2000):
-    req = urllib.request.Request('https://api.openai.com/v1/chat/completions',
-        data=json.dumps({'model': 'gpt-4o-mini', 'messages': [{'role':'user','content':prompt}], 'temperature': 0.3, 'max_tokens': max_tokens}).encode(), method='POST')
-    req.add_header('Authorization', f'Bearer {OPENAI_KEY}')
-    req.add_header('Content-Type', 'application/json')
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        raw = json.loads(r.read())['choices'][0]['message']['content'].strip()
-    if raw.startswith('```'): raw = raw.split('\n',1)[1].rsplit('\n',1)[0]
+    _client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+    msg = _client.messages.create(
+        model='claude-sonnet-4-6',
+        max_tokens=max_tokens,
+        messages=[{'role': 'user', 'content': prompt}]
+    )
+    raw = msg.content[0].text.strip()
+    if raw.startswith('```'): raw = raw.split('\n', 1)[1].rsplit('\n', 1)[0]
     return raw
 
 def get_sheet(range_name):
