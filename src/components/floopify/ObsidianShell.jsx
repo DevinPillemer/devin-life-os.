@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Bell, BookOpen, HeartPulse, LayoutGrid, UserRound, WalletCards } from 'lucide-react'
+import { Bell, BookOpen, LayoutGrid, UserRound, WalletCards } from 'lucide-react'
 
 const sidebarItems = [
   { to: '/home', label: 'Home', icon: 'home' },
@@ -105,3 +105,6 @@ export function Screen({ children, title, subtitle, showTopBar = false, includeB
     </div>
   )
 }
+
+
+export default Screen

@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { Bar, BarChart, ResponsiveContainer, XAxis } from 'recharts'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Screen } from '@/components/floopify/ObsidianShell'
@@ -80,13 +79,13 @@ export default function HealthPage() {
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <Card className="p-5">
               <p className="text-sm text-onsurface-variant">Weekly Activity</p>
-              <div className="mt-4 h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyActivity}>
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#bacac5', fontSize: 12 }} />
-                    <Bar dataKey="value" fill="#57f1db" radius={[14, 14, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="mt-5 flex h-64 items-end gap-3">
+                {weeklyActivity.map((bar) => (
+                  <div key={`${bar.day}-${bar.value}`} className="flex flex-1 flex-col items-center gap-3">
+                    <div className="w-full rounded-t-[20px] bg-primary/90" style={{ height: `${bar.value}%` }} />
+                    <span className="text-xs text-onsurface-variant">{bar.day}</span>
+                  </div>
+                ))}
               </div>
             </Card>
           </motion.div>

@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import { Bell, BookOpen, HeartPulse, Plus, Quote, Wallet } from 'lucide-react'
-import { Cell, Pie, PieChart, ResponsiveContainer, BarChart, Bar, XAxis, CartesianGrid } from 'recharts'
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -8,16 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Screen } from '@/components/floopify/ObsidianShell'
 
 const financeBars = [
-  { name: 'M', value: 5.2 },
-  { name: 'T', value: 7.8 },
-  { name: 'W', value: 6.1 },
-  { name: 'T', value: 8.4 },
-  { name: 'F', value: 9.2 }
-]
-
-const donutData = [
-  { name: 'Complete', value: 78, color: '#57f1db' },
-  { name: 'Remaining', value: 22, color: '#2a2a2a' }
+  { name: 'M', value: 52 },
+  { name: 'T', value: 78 },
+  { name: 'W', value: 61 },
+  { name: 'T', value: 84 },
+  { name: 'F', value: 92 }
 ]
 
 const focus = ['Finalize savings allocation', 'Complete typography lesson', 'Close rings before 8 PM']
@@ -63,6 +57,32 @@ function AnimatedCard({ index, className = '', children }) {
   )
 }
 
+function DonutProgress({ value }) {
+  const radius = 42
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (value / 100) * circumference
+
+  return (
+    <div className="relative flex h-28 w-28 items-center justify-center">
+      <svg viewBox="0 0 120 120" className="h-28 w-28 -rotate-90">
+        <circle cx="60" cy="60" r={radius} fill="none" stroke="#2a2a2a" strokeWidth="12" />
+        <circle
+          cx="60"
+          cy="60"
+          r={radius}
+          fill="none"
+          stroke="#57f1db"
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+        />
+      </svg>
+      <div className="absolute font-heading text-2xl font-extrabold text-primary">{value}%</div>
+    </div>
+  )
+}
+
 export default function HomePage() {
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
@@ -102,16 +122,7 @@ export default function HomePage() {
                 <Card className="h-full bg-gradient-to-br from-surface-lowest via-surface to-surface-highest/40 p-5">
                   <p className="text-sm text-onsurface-variant">Learning Progress</p>
                   <div className="mt-4 flex items-center gap-4">
-                    <div className="h-28 w-28">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={donutData} dataKey="value" innerRadius={34} outerRadius={50} startAngle={90} endAngle={-270} stroke="none">
-                            {donutData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="-mt-16 text-center font-heading text-2xl font-extrabold text-primary">78%</div>
-                    </div>
+                    <DonutProgress value={78} />
                     <div>
                       <p className="font-heading text-xl font-bold text-onsurface">Advanced learning streak</p>
                       <p className="mt-2 text-sm text-onsurface-variant">3 modules remaining this week</p>
@@ -130,14 +141,13 @@ export default function HomePage() {
                       <p className="mt-1 text-sm text-primary">+12.5% from last month</p>
                     </div>
                   </div>
-                  <div className="mt-4 h-32">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={financeBars}>
-                        <CartesianGrid vertical={false} stroke="#2a2a2a" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#bacac5', fontSize: 12 }} />
-                        <Bar dataKey="value" radius={[10, 10, 0, 0]} fill="#57f1db" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="mt-5 flex h-32 items-end gap-3">
+                    {financeBars.map((bar) => (
+                      <div key={bar.name} className="flex flex-1 flex-col items-center gap-2">
+                        <div className="w-full rounded-t-2xl bg-primary/90" style={{ height: `${bar.value}%` }} />
+                        <span className="text-xs text-onsurface-variant">{bar.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </Card>
               )}
