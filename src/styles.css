@@ -1,25 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+}
+
+html {
+  @apply bg-background;
+}
+
 body {
-  @apply bg-background text-gray-100 font-sans antialiased;
+  @apply bg-background text-onsurface font-sans antialiased;
+}
+
+#root {
+  @apply min-h-screen;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
 }
 
 .card {
-  @apply rounded-xl border border-border/50 bg-card;
+  @apply rounded-2xl border border-outline/20 bg-surface-lowest shadow-card;
+}
+
+::selection {
+  @apply bg-primary/30 text-white;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E2A3A;
-  border-radius: 3px;
+  background: #2a2a2a;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2d3f54;
+  background: #3c3c3c;
 }
