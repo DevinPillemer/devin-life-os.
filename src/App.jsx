@@ -24,7 +24,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-        <Route index element={<HomePage />} />
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="home" element={<HomePage />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="dailyhabits" element={<DailyHabitsPage />} />
         <Route path="health" element={<HealthPage />} />
@@ -43,7 +44,7 @@ export default function App() {
         <Route path="learning/course/:courseId/quiz" element={<LearningQuizPage />} />
         <Route path="learning/course/:courseId/exercise" element={<LearningExercisePage />} />
         <Route path="learning/course/:courseId/results" element={<LearningResultsPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Route>
     </Routes>
   )
