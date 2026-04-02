@@ -2,24 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-background text-gray-100 font-sans antialiased;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.card {
-  @apply rounded-xl border border-border/50 bg-card;
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #0a0a0f;
+  color: #e5e7eb;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0a0a0f;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #1E2A3A;
+  background: #1e1e2e;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #2d3f54;
+  background: #2e2e3e;
+}
+
+/* Page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+/* Light theme overrides */
+html.light body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* Confetti pieces */
+.confetti-piece {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  top: -10px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+/* Animated counter */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 212, 170, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(0, 212, 170, 0.4); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* SVG ring animation */
+@keyframes ring-fill {
+  from { stroke-dashoffset: var(--circumference); }
+  to { stroke-dashoffset: var(--offset); }
+}
+
+.ring-animated {
+  animation: ring-fill 1.5s ease-out forwards;
 }
