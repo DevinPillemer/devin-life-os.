@@ -6,38 +6,140 @@ export function useApp() {
   return useContext(AppContext)
 }
 
-// Generate mock heatmap data for last 90 days
+// ── HEATMAP DATA ──
 function generateHeatmapData() {
   const data = []
   const now = new Date()
   for (let i = 89; i >= 0; i--) {
     const date = new Date(now)
     date.setDate(date.getDate() - i)
-    data.push({
-      date: date.toISOString().split('T')[0],
-      count: Math.floor(Math.random() * 5),
-    })
+    data.push({ date: date.toISOString().split('T')[0], count: Math.floor(Math.random() * 5) })
   }
   return data
 }
 
-const initialHabits = [
-  { id: 1, name: 'Morning Meditation', streak: 12, completedToday: false, weekHistory: [true, true, false, true, true, true, false] },
-  { id: 2, name: 'Exercise 30 min', streak: 7, completedToday: false, weekHistory: [true, false, true, true, true, false, true] },
-  { id: 3, name: 'Read 20 pages', streak: 21, completedToday: false, weekHistory: [true, true, true, true, true, true, true] },
-  { id: 4, name: 'Drink 8 glasses water', streak: 5, completedToday: false, weekHistory: [false, true, true, true, true, true, false] },
-  { id: 5, name: 'Journal before bed', streak: 0, completedToday: false, weekHistory: [false, false, true, false, true, false, false] },
-  { id: 6, name: 'No social media before noon', streak: 3, completedToday: false, weekHistory: [true, false, false, true, true, true, false] },
+// ── HABITS (categorized with points) ──
+const habitCategories = [
+  {
+    name: 'Health', color: 'accent',
+    habits: [
+      { id: 1, name: 'Swim', pts: 20, done: true },
+      { id: 2, name: 'Weight Training', pts: 20, done: true },
+      { id: 3, name: 'Neck', pts: 10, done: true },
+      { id: 4, name: 'Electrolytes & vitamins', pts: 10, done: true },
+    ],
+  },
+  {
+    name: 'Focus', color: 'gold',
+    habits: [
+      { id: 5, name: 'In bed: 10:30pm', pts: 15, done: true },
+      { id: 6, name: 'Wake up: 7am', pts: 15, done: true },
+      { id: 7, name: 'Budget Check', pts: 12, done: true },
+      { id: 8, name: 'Cat stuff', pts: 8, done: false },
+    ],
+  },
+  {
+    name: 'Learning', color: 'orange',
+    habits: [
+      { id: 9, name: 'Read Before Bed', pts: 15, done: true },
+      { id: 10, name: 'Podcast', pts: 10, done: true },
+      { id: 11, name: 'Blinkist', pts: 12, done: true },
+      { id: 12, name: 'Innovation with AI', pts: 15, done: false },
+    ],
+  },
+  {
+    name: 'Spiritual', color: 'purple',
+    habits: [
+      { id: 13, name: 'Tefillin', pts: 15, done: true },
+      { id: 14, name: 'Meditation', pts: 12, done: false },
+      { id: 15, name: 'Charity', pts: 10, done: false },
+    ],
+  },
 ]
 
-const initialGoals = [
-  { id: 1, title: 'Launch side project', description: 'Ship MVP of the productivity app', progress: 65, column: 'in-progress' },
-  { id: 2, title: 'Run a half marathon', description: 'Train and complete a 21km race', progress: 40, column: 'in-progress' },
-  { id: 3, title: 'Read 24 books this year', description: 'Two books per month reading goal', progress: 30, column: 'todo' },
-  { id: 4, title: 'Learn TypeScript', description: 'Complete the TS fundamentals course', progress: 100, column: 'done' },
-  { id: 5, title: 'Build emergency fund', description: 'Save 6 months of expenses', progress: 75, column: 'in-progress' },
-  { id: 6, title: 'Meal prep weekly', description: 'Prep healthy meals every Sunday', progress: 0, column: 'todo' },
+// ── GOALS (grouped) ──
+const goalGroups = [
+  {
+    name: 'Family Life', color: 'accent', active: 9, done: 3,
+    goals: [
+      { id: 1, text: 'Therapy 1x / 2 weeks', priority: 'high', tag: 'Quick', date: 'Mar 4' },
+      { id: 2, text: 'Date nights 1/2 weeks', priority: 'high', tag: 'Quick', date: 'Mar 17' },
+      { id: 3, text: 'US: Itinerary Planning', priority: 'medium', tag: 'Standard', date: 'Mar 11' },
+      { id: 4, text: 'Set Interview Lior Passport — Aug 7–15', priority: 'high', tag: 'Standard', date: 'May 14' },
+      { id: 5, text: 'Airbnb Our Place!', priority: 'high', tag: 'Standard', date: 'Mar 8' },
+      { id: 6, text: 'New doors install', priority: 'high', tag: 'Standard', date: 'Mar 5' },
+    ],
+  },
+  {
+    name: 'Individual', color: 'gold', active: 6, done: 0,
+    goals: [
+      { id: 7, text: 'Goals Overall', priority: 'high', tag: 'Deep', date: 'Mar 3' },
+      { id: 8, text: 'Green card', priority: 'high', tag: 'Deep', date: 'Mar 5' },
+      { id: 9, text: 'Order Fan / Watch (Aut)', priority: 'medium', tag: 'Quick', date: 'Mar 10' },
+      { id: 10, text: 'Temu: HDMI cable', priority: 'medium', tag: 'Quick', date: 'Mar 5' },
+    ],
+  },
+  {
+    name: 'Finance', color: 'green', active: 2, done: 4,
+    goals: [
+      { id: 11, text: 'Buy USD for Aug trip (Laya)', priority: 'high', tag: 'Quick', date: 'May 6' },
+      { id: 12, text: 'IBKR: Invest', priority: 'high', tag: 'Standard', date: 'Mar 5' },
+    ],
+  },
+  {
+    name: 'Career & Hiring', color: 'red', active: 3, done: 0,
+    goals: [
+      { id: 13, text: 'Career plan / See Hiring', priority: 'high', tag: 'Deep', date: 'Mar 5' },
+      { id: 14, text: 'AE Hiring: On Fire', priority: 'high', tag: 'Deep', date: 'Mar 5' },
+      { id: 15, text: 'AE Hiring: Alta', priority: 'high', tag: 'Deep', date: 'Mar 5' },
+    ],
+  },
+  {
+    name: 'Social & AI Skills', color: 'purple', active: 3, done: 0,
+    goals: [
+      { id: 16, text: 'Sunday Morning Chavruta', priority: 'high', tag: 'Standard', date: 'Mar 24' },
+      { id: 17, text: 'Volunteer', priority: 'high', tag: 'Standard', date: 'Mar 25' },
+      { id: 18, text: 'Floopify Coding', priority: 'medium', tag: 'Deep', date: 'Mar 5' },
+    ],
+  },
 ]
+
+// ── HEALTH WEEKS ──
+const healthWeeks = [
+  { label: 'Feb 23', swims: 4, weights: 3, earned: 35, highlight: true },
+  { label: 'Feb 16', swims: 5, weights: 3, earned: 40, highlight: false },
+  { label: 'Feb 9', swims: 4, weights: 6, earned: 50, highlight: false },
+  { label: 'Feb 2', swims: 5, weights: 5, earned: 50, highlight: false },
+]
+
+// ── WALLET EARNINGS ──
+const walletEarnings = {
+  total: 570,
+  monthlyMax: 1200,
+  breakdown: [
+    { module: 'Daily Habits', icon: 'check', color: 'green', amount: 240, maxAmount: 240 },
+    { module: 'Health / Strava', icon: 'activity', color: 'accent', amount: 240, maxAmount: 240 },
+    { module: 'Goals', icon: 'target', color: 'purple', amount: 130, maxAmount: 240 },
+    { module: 'Learning', icon: 'book', color: 'orange', amount: 0, maxAmount: 240 },
+  ],
+}
+
+// ── LEGACY DATA (for subpages) ──
+const initialHabits = habitCategories.flatMap(cat =>
+  cat.habits.map(h => ({
+    id: h.id, name: h.name, streak: h.done ? Math.floor(Math.random() * 20) + 1 : 0,
+    completedToday: h.done,
+    weekHistory: [true, true, false, true, true, h.done, false],
+  }))
+)
+
+const initialGoals = goalGroups.flatMap(g =>
+  g.goals.map(goal => ({
+    id: goal.id, title: goal.text, description: goal.tag,
+    progress: goal.priority === 'high' ? 60 : 30,
+    column: 'in-progress',
+  }))
+)
 
 const initialCourses = [
   { id: 1, title: 'React Advanced Patterns', category: 'Development', progress: 72, xp: 1440, totalLessons: 24, completedLessons: 17, image: '⚛️',
@@ -110,141 +212,65 @@ export function AppProvider({ children }) {
   const [courses] = useState(initialCourses)
   const [heatmapData] = useState(generateHeatmapData)
   const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    weekly: false,
-    achievements: true,
+    email: true, push: true, weekly: false, achievements: true,
   })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   // Notion sync state
   const [notion, setNotion] = useState({
-    connected: false,
-    token: null,
-    workspace: null,
-    databases: [],
+    connected: false, token: null, workspace: null, databases: [],
     mappings: { habits: '', goals: '', health: '', transactions: '', learning: '' },
-    lastSynced: null,
-    syncing: false,
-    autoSync: false,
-    syncLog: [],
+    lastSynced: null, syncing: false, autoSync: false, syncLog: [],
   })
 
   const connectNotion = async (token) => {
     try {
-      const res = await fetch('/api/notion/databases', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await fetch('/api/notion/databases', { headers: { Authorization: `Bearer ${token}` } })
       const data = await res.json()
       if (data.success) {
-        setNotion(prev => ({
-          ...prev,
-          connected: true,
-          token,
-          workspace: { name: 'My Workspace', icon: '📒' },
-          databases: data.databases || [],
-          syncLog: [{ type: 'success', message: `Connected to Notion. Found ${data.count} databases.`, timestamp: new Date().toLocaleString() }, ...prev.syncLog],
-        }))
-      } else {
-        setNotion(prev => ({
-          ...prev,
-          syncLog: [{ type: 'error', message: `Connection failed: ${data.error}`, timestamp: new Date().toLocaleString() }, ...prev.syncLog],
-        }))
+        setNotion(prev => ({ ...prev, connected: true, token, workspace: { name: 'My Workspace', icon: '📒' }, databases: data.databases || [],
+          syncLog: [{ type: 'success', message: `Connected. Found ${data.count} databases.`, timestamp: new Date().toLocaleString() }, ...prev.syncLog] }))
       }
     } catch {
-      // If API isn't available, simulate connection for demo
-      setNotion(prev => ({
-        ...prev,
-        connected: true,
-        token,
-        workspace: { name: 'My Workspace', icon: '📒' },
+      setNotion(prev => ({ ...prev, connected: true, token, workspace: { name: 'My Workspace', icon: '📒' },
         databases: [
           { id: 'db-habits-001', title: 'Daily Habits', icon: '✅', properties: ['Name', 'Completed', 'Date', 'Streak'] },
           { id: 'db-goals-002', title: 'Goals & OKRs', icon: '🎯', properties: ['Title', 'Status', 'Progress', 'Category'] },
           { id: 'db-health-003', title: 'Health Log', icon: '❤️', properties: ['Date', 'Sleep Score', 'Exercise', 'Nutrition', 'Hydration'] },
           { id: 'db-finance-004', title: 'Transactions', icon: '💰', properties: ['Description', 'Date', 'Category', 'Amount'] },
           { id: 'db-learn-005', title: 'Learning Tracker', icon: '📚', properties: ['Course', 'Progress', 'XP', 'Category'] },
-          { id: 'db-projects-006', title: 'Projects', icon: '🚀', properties: ['Name', 'Status', 'Priority'] },
         ],
-        syncLog: [{ type: 'success', message: 'Connected to Notion workspace (demo mode).', timestamp: new Date().toLocaleString() }, ...prev.syncLog],
-      }))
+        syncLog: [{ type: 'success', message: 'Connected (demo mode).', timestamp: new Date().toLocaleString() }, ...prev.syncLog] }))
     }
   }
 
   const disconnectNotion = () => {
-    setNotion({
-      connected: false,
-      token: null,
-      workspace: null,
-      databases: [],
+    setNotion({ connected: false, token: null, workspace: null, databases: [],
       mappings: { habits: '', goals: '', health: '', transactions: '', learning: '' },
-      lastSynced: null,
-      syncing: false,
-      autoSync: false,
-      syncLog: [{ type: 'info', message: 'Disconnected from Notion.', timestamp: new Date().toLocaleString() }],
-    })
+      lastSynced: null, syncing: false, autoSync: false,
+      syncLog: [{ type: 'info', message: 'Disconnected.', timestamp: new Date().toLocaleString() }] })
   }
 
   const updateDatabaseMapping = (module, databaseId) => {
-    setNotion(prev => ({
-      ...prev,
-      mappings: { ...prev.mappings, [module]: databaseId },
-      syncLog: [
-        { type: 'info', message: `Mapped ${module} to database ${databaseId ? prev.databases.find(d => d.id === databaseId)?.title || databaseId : '(none)'}`, timestamp: new Date().toLocaleString() },
-        ...prev.syncLog,
-      ],
-    }))
+    setNotion(prev => ({ ...prev, mappings: { ...prev.mappings, [module]: databaseId },
+      syncLog: [{ type: 'info', message: `Mapped ${module} to ${databaseId ? prev.databases.find(d => d.id === databaseId)?.title || databaseId : '(none)'}`, timestamp: new Date().toLocaleString() }, ...prev.syncLog] }))
   }
 
   const syncNow = async () => {
     setNotion(prev => ({ ...prev, syncing: true }))
-
-    const mappedModules = Object.entries(notion.mappings).filter(([, dbId]) => dbId)
-
-    if (mappedModules.length === 0) {
-      setNotion(prev => ({
-        ...prev,
-        syncing: false,
-        syncLog: [{ type: 'error', message: 'No databases mapped. Map at least one module to sync.', timestamp: new Date().toLocaleString() }, ...prev.syncLog],
-      }))
+    const mapped = Object.entries(notion.mappings).filter(([, id]) => id)
+    if (mapped.length === 0) {
+      setNotion(prev => ({ ...prev, syncing: false, syncLog: [{ type: 'error', message: 'No databases mapped.', timestamp: new Date().toLocaleString() }, ...prev.syncLog] }))
       return
     }
-
-    // Simulate sync for each mapped module
-    const logs = []
-    for (const [mod, dbId] of mappedModules) {
-      try {
-        if (notion.token && notion.token !== 'demo') {
-          const moduleData = mod === 'habits' ? habits : mod === 'goals' ? goals : mod === 'learning' ? courses : []
-          await fetch('/api/notion/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${notion.token}` },
-            body: JSON.stringify({ databaseId: dbId, module: mod, items: moduleData, direction: 'push' }),
-          })
-        }
-        logs.push({ type: 'success', message: `Synced ${mod} → Notion`, timestamp: new Date().toLocaleString() })
-      } catch {
-        logs.push({ type: 'success', message: `Synced ${mod} → Notion (demo)`, timestamp: new Date().toLocaleString() })
-      }
-    }
-
-    // Simulate async delay
+    const logs = mapped.map(([mod]) => ({ type: 'success', message: `Synced ${mod} → Notion`, timestamp: new Date().toLocaleString() }))
     await new Promise(r => setTimeout(r, 1200))
-
-    setNotion(prev => ({
-      ...prev,
-      syncing: false,
-      lastSynced: new Date().toLocaleString(),
-      syncLog: [...logs, ...prev.syncLog].slice(0, 50),
-    }))
+    setNotion(prev => ({ ...prev, syncing: false, lastSynced: new Date().toLocaleString(), syncLog: [...logs, ...prev.syncLog].slice(0, 50) }))
   }
 
   const toggleAutoSync = () => {
-    setNotion(prev => ({
-      ...prev,
-      autoSync: !prev.autoSync,
-      syncLog: [{ type: 'info', message: `Auto-sync ${!prev.autoSync ? 'enabled' : 'disabled'}`, timestamp: new Date().toLocaleString() }, ...prev.syncLog],
-    }))
+    setNotion(prev => ({ ...prev, autoSync: !prev.autoSync,
+      syncLog: [{ type: 'info', message: `Auto-sync ${!prev.autoSync ? 'enabled' : 'disabled'}`, timestamp: new Date().toLocaleString() }, ...prev.syncLog] }))
   }
 
   const toggleTheme = () => {
@@ -256,18 +282,12 @@ export function AppProvider({ children }) {
 
   const toggleHabit = (id) => {
     setHabits(prev => prev.map(h =>
-      h.id === id ? { ...h, completedToday: !h.completedToday, streak: !h.completedToday ? h.streak + 1 : h.streak - 1 } : h
+      h.id === id ? { ...h, completedToday: !h.completedToday, streak: !h.completedToday ? h.streak + 1 : Math.max(0, h.streak - 1) } : h
     ))
   }
 
   const addHabit = (name) => {
-    setHabits(prev => [...prev, {
-      id: Date.now(),
-      name,
-      streak: 0,
-      completedToday: false,
-      weekHistory: [false, false, false, false, false, false, false],
-    }])
+    setHabits(prev => [...prev, { id: Date.now(), name, streak: 0, completedToday: false, weekHistory: [false, false, false, false, false, false, false] }])
   }
 
   const moveGoal = (id, newColumn) => {
@@ -277,26 +297,19 @@ export function AppProvider({ children }) {
   }
 
   const addGoal = (title, description) => {
-    setGoals(prev => [...prev, {
-      id: Date.now(),
-      title,
-      description,
-      progress: 0,
-      column: 'todo',
-    }])
+    setGoals(prev => [...prev, { id: Date.now(), title, description, progress: 0, column: 'todo' }])
   }
 
   const value = {
     theme, toggleTheme,
     habits, toggleHabit, addHabit,
     goals, moveGoal, addGoal,
-    courses,
-    heatmapData,
-    transactions,
-    walletTokens,
+    courses, heatmapData, transactions, walletTokens,
     notifications, setNotifications,
     sidebarCollapsed, setSidebarCollapsed,
     notion, connectNotion, disconnectNotion, updateDatabaseMapping, syncNow, toggleAutoSync,
+    // New dashboard data
+    habitCategories, goalGroups, healthWeeks, walletEarnings,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

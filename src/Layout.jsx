@@ -1,20 +1,70 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Home, CheckSquare, Heart, Target, DollarSign, Wallet, BookOpen, Settings, Database, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react'
+import {
+  LayoutDashboard, CheckCircle2, Activity, Target, BookOpen,
+  Wallet, BarChart2, Database, Settings, Menu, X, ExternalLink
+} from 'lucide-react'
 import FloopifyLogo from './components/FloopifyLogo'
 import { useApp } from './context/AppContext'
 
-const navItems = [
-  { to: '/', icon: Home, label: 'Home' },
-  { to: '/habits', icon: CheckSquare, label: 'Habits' },
-  { to: '/health', icon: Heart, label: 'Health' },
-  { to: '/goals', icon: Target, label: 'Goals' },
-  { to: '/finance', icon: DollarSign, label: 'Finance' },
-  { to: '/wallet', icon: Wallet, label: 'Wallet' },
+const overviewItems = [
+  { to: '/', icon: LayoutDashboard, label: 'Home' },
+]
+
+const moduleItems = [
+  { to: '/habits', icon: CheckCircle2, label: 'Daily Habits', badge: '11/11' },
+  { to: '/health', icon: Activity, label: 'Health', badge: 'Strava' },
+  { to: '/goals', icon: Target, label: 'Goals', badge: '23' },
   { to: '/learning', icon: BookOpen, label: 'Learning' },
+  { to: '/wallet', icon: Wallet, label: 'Wallet' },
+  { to: '/finance', icon: BarChart2, label: 'Finance' },
+]
+
+const systemItems = [
   { to: '/notion', icon: Database, label: 'Notion Sync' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
+
+const allItems = [...overviewItems, ...moduleItems, ...systemItems]
+
+function NavSection({ label, items }) {
+  return (
+    <>
+      <div className="px-5 pt-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-faint">
+        {label}
+      </div>
+      {items.map(({ to, icon: Icon, label, badge }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={to === '/'}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-5 py-2 text-[13px] transition-all duration-150 relative ${
+              isActive
+                ? 'text-accent bg-accent-dim'
+                : 'text-text-muted hover:bg-surface-2 hover:text-text'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-accent rounded-r" />
+              )}
+              <Icon size={15} className="flex-shrink-0" />
+              <span className="flex-1">{label}</span>
+              {badge && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-surface-3 text-text-muted">
+                  {badge}
+                </span>
+              )}
+            </>
+          )}
+        </NavLink>
+      ))}
+    </>
+  )
+}
 
 export default function Layout() {
   const { sidebarCollapsed, setSidebarCollapsed } = useApp()
@@ -33,85 +83,71 @@ export default function Layout() {
     setMobileOpen(false)
   }, [location.pathname])
 
-  const linkClass = (isActive) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${
-      isActive
-        ? 'bg-accent/10 text-accent'
-        : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-    }`
+  const today = new Date()
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
 
-  // Mobile bottom tab bar
+  // Mobile layout
   if (isMobile) {
     return (
       <div className="min-h-screen bg-bg">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FloopifyLogo size={28} />
-            <span className="font-bold text-lg text-white">Floopify</span>
+            <div>
+              <div className="text-[15px] font-semibold text-text">Floopify</div>
+            </div>
           </div>
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="text-text-muted">
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </header>
-        <main className="pt-16 pb-20 px-4">
+        <main className="pt-16 pb-6 px-4">
           <div className="animate-fade-in">
             <Outlet />
           </div>
         </main>
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border">
-          <div className="flex justify-around py-2">
-            {navItems.slice(0, 5).map(({ to, icon: Icon, label }) => (
-              <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] transition-colors ${isActive ? 'text-accent' : 'text-gray-500'}`
-              }>
-                <Icon size={20} />
-                {label}
-              </NavLink>
-            ))}
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="flex flex-col items-center gap-0.5 px-2 py-1 text-[10px] text-gray-500">
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              More
-            </button>
-          </div>
-        </nav>
         {mobileOpen && (
-          <div className="fixed inset-0 z-40 bg-bg/95 backdrop-blur pt-16 pb-20 px-6">
-            <div className="flex flex-col gap-2 mt-4">
-              {navItems.slice(5).map(({ to, icon: Icon, label }) => (
-                <NavLink key={to} to={to} className={({ isActive }) => linkClass(isActive)}>
-                  <Icon size={20} />
-                  {label}
-                </NavLink>
-              ))}
-            </div>
+          <div className="fixed inset-0 z-40 bg-bg/95 backdrop-blur pt-16 px-4 overflow-y-auto">
+            <NavSection label="Overview" items={overviewItems} />
+            <NavSection label="Modules" items={moduleItems} />
+            <NavSection label="System" items={systemItems} />
           </div>
         )}
       </div>
     )
   }
 
-  // Desktop sidebar
+  // Desktop layout with sidebar
   return (
     <div className="min-h-screen bg-bg flex">
-      <aside className={`fixed top-0 left-0 h-full z-40 bg-card border-r border-border transition-all duration-300 flex flex-col ${sidebarCollapsed ? 'w-16' : 'w-56'}`}>
-        <div className={`flex items-center gap-2 p-4 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-          <FloopifyLogo size={28} />
-          {!sidebarCollapsed && <span className="font-bold text-lg text-white">Floopify</span>}
+      <aside className="w-[220px] flex-shrink-0 bg-surface border-r border-border flex flex-col sticky top-0 h-screen overflow-y-auto">
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-5 pb-6 pt-6 border-b border-border mb-1">
+          <FloopifyLogo size={32} />
+          <div>
+            <div className="text-[15px] font-semibold tracking-tight text-text">Floopify</div>
+            <div className="text-[11px] text-text-muted">Life OS</div>
+          </div>
         </div>
-        <nav className="flex-1 px-2 py-4 space-y-1">
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => linkClass(isActive)} title={sidebarCollapsed ? label : undefined}>
-              <Icon size={20} className="flex-shrink-0" />
-              {!sidebarCollapsed && label}
-            </NavLink>
-          ))}
+
+        {/* Nav */}
+        <nav className="flex-1">
+          <NavSection label="Overview" items={overviewItems} />
+          <NavSection label="Modules" items={moduleItems} />
+          <NavSection label="System" items={systemItems} />
         </nav>
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="p-3 border-t border-border text-gray-500 hover:text-gray-300 transition-colors flex items-center justify-center"
-        >
-          {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
+
+        {/* Footer date */}
+        <div className="p-5 border-t border-border">
+          <div className="text-[11px] text-text-muted bg-surface-2 px-3 py-2 rounded-sm text-center">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green animate-pulse-dot mr-1.5 align-middle" />
+            {dateStr}
+          </div>
+        </div>
       </aside>
-      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-56'}`}>
-        <div className="p-6 max-w-7xl mx-auto animate-fade-in">
+
+      <main className="flex-1 overflow-y-auto p-8 max-w-[1280px]">
+        <div className="animate-fade-in">
           <Outlet />
         </div>
       </main>
