@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Wallet, CheckSquare, Activity, Target, BookOpen, RefreshCw, ExternalLink, Droplets, Dumbbell } from 'lucide-react'
+import { Wallet, CheckSquare, Activity, Target, BookOpen, RefreshCw, ExternalLink, Droplets, Dumbbell, Loader2 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 
 // ── Animated counter ──
@@ -187,7 +187,7 @@ function GoalGroupCard({ group }) {
 
 // ── MAIN DASHBOARD ──
 export default function DashboardPage() {
-  const { habitCategories, healthWeeks, walletEarnings, goalGroups } = useApp()
+  const { habitCategories, healthWeeks, walletEarnings, goalGroups, strava, fetchStrava } = useApp()
 
   const allHabits = habitCategories.flatMap(c => c.habits)
   const totalPts = allHabits.reduce((s, h) => s + h.pts, 0)
@@ -206,7 +206,7 @@ export default function DashboardPage() {
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accent mb-2">Good evening, Devin</div>
           <h1 className="font-serif text-3xl md:text-4xl text-text font-normal italic leading-tight">Your Daily Command Center</h1>
-          <p className="text-[13px] text-text-muted mt-2">{dateStr} · Week {weekNum} · Last synced Mar 5</p>
+          <p className="text-[13px] text-text-muted mt-2">{dateStr} · Week {weekNum}{strava.lastSynced ? ` · Last synced ${strava.lastSynced}` : ''}</p>
         </div>
         <div className="flex gap-2">
           <button className="inline-flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-medium border border-border bg-surface-2 text-text-muted hover:bg-surface-3 hover:text-text transition-all">
@@ -223,7 +223,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard icon={Wallet} iconBg="var(--gold-dim)" iconColor="var(--gold)" label="Wallet" value={walletEarnings.total} prefix="₪" sub={`of ₪${walletEarnings.monthlyMax.toLocaleString()} max`} barPct={Math.round(walletEarnings.total / walletEarnings.monthlyMax * 100)} barColor="gold" period="April" />
         <KpiCard icon={CheckSquare} iconBg="var(--green-dim)" iconColor="var(--green)" label="Daily Habits" value={habitPct} suffix="%" sub={`${allHabits.filter(h => h.done).length}/${allHabits.length} complete today`} barPct={habitPct} barColor="green" badge={habitPct === 100 ? 'Perfect ✓' : null} badgeColor="text-green" reward="₪240 monthly reward" />
-        <KpiCard icon={Activity} iconBg="var(--accent-dim)" iconColor="var(--accent)" label="Health" value={0} sub="sessions this week" barPct={0} barColor="accent" period="Apr W14" reward="₪0 earned this month" />
+        <KpiCard icon={Activity} iconBg="var(--accent-dim)" iconColor="var(--accent)" label="Health" value={strava.thisWeek.total} sub={`session${strava.thisWeek.total !== 1 ? 's' : ''} this week`} barPct={Math.min(100, Math.round(strava.thisWeek.total / 7 * 100))} barColor="accent" period={`Apr W${weekNum}`} reward={`₪${strava.thisMonth.earned} earned this month`} />
         <KpiCard icon={Target} iconBg="var(--purple-dim)" iconColor="var(--purple)" label="Goals" value={23} sub="active · 13 done" barPct={36} barColor="purple" period="Notion" />
         <KpiCard icon={BookOpen} iconBg="var(--orange-dim)" iconColor="var(--orange)" label="Learning" value="—" sub="Sync to load data" barPct={0} barColor="orange" period="Monthly" reward="₪0 this month" />
       </div>
@@ -250,34 +250,52 @@ export default function DashboardPage() {
         {/* Health + Wallet stacked */}
         <div className="flex flex-col gap-4">
 
-          {/* Health */}
+          {/* Health / Strava */}
           <div className="bg-surface border border-border rounded-lg p-5 flex-1">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="text-[13px] font-semibold">Health / Strava</div>
-                <div className="text-[11px] text-text-muted mt-0.5">₪5/session · Apr 2026</div>
+                <div className="text-[11px] text-text-muted mt-0.5">
+                  ₪5/session · {today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                  {strava.lastSynced && <span> · Synced {strava.lastSynced}</span>}
+                </div>
               </div>
-              <span className="text-[10px] font-semibold text-red bg-red-dim px-2 py-1 rounded-full">No activity yet</span>
+              <div className="flex items-center gap-2">
+                {strava.loading && <Loader2 size={14} className="animate-spin text-accent" />}
+                <button onClick={fetchStrava} disabled={strava.loading} className="text-[10px] font-medium text-accent hover:text-accent/80 transition-colors disabled:opacity-50">
+                  <RefreshCw size={12} />
+                </button>
+                {strava.error ? (
+                  <span className="text-[10px] font-semibold text-red bg-red-dim px-2 py-1 rounded-full" title={strava.error}>API error</span>
+                ) : strava.thisMonth.total === 0 && !strava.loading ? (
+                  <span className="text-[10px] font-semibold text-red bg-red-dim px-2 py-1 rounded-full">No activity yet</span>
+                ) : strava.thisMonth.total > 0 ? (
+                  <span className="text-[10px] font-semibold text-green bg-green-dim px-2 py-1 rounded-full">{strava.thisMonth.total} this month</span>
+                ) : null}
+              </div>
             </div>
 
             <div className="flex gap-4 mb-4">
               <div className="flex-1">
-                <div className="text-xl font-bold text-accent">0</div>
+                <div className="text-xl font-bold text-accent">{strava.thisMonth.swims}</div>
                 <div className="text-[10px] text-text-muted uppercase tracking-[0.06em]">Swims</div>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-bold text-orange">0</div>
+                <div className="text-xl font-bold text-orange">{strava.thisMonth.weights}</div>
                 <div className="text-[10px] text-text-muted uppercase tracking-[0.06em]">Weights</div>
               </div>
               <div className="flex-1">
-                <div className="text-xl font-bold text-gold">₪0</div>
+                <div className="text-xl font-bold text-gold">₪{strava.thisMonth.earned}</div>
                 <div className="text-[10px] text-text-muted uppercase tracking-[0.06em]">Earned</div>
               </div>
             </div>
 
             <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-text-faint mb-3">Recent Weeks</div>
             <div className="flex flex-col gap-2">
-              {healthWeeks.map(w => <WeekRow key={w.label} week={w} />)}
+              {strava.weeklyHistory.length > 0
+                ? strava.weeklyHistory.map(w => <WeekRow key={w.label} week={w} />)
+                : healthWeeks.map(w => <WeekRow key={w.label} week={w} />)
+              }
             </div>
           </div>
 
@@ -325,7 +343,7 @@ export default function DashboardPage() {
       {/* ── Footer ── */}
       <div className="flex items-center justify-between pt-6 border-t border-border mt-4">
         <span className="text-[11px] text-text-faint">Floopify Life OS · Data from Habitify, Strava, Notion, Google Sheets</span>
-        <span className="text-[11px] text-text-faint">Last synced: Mar 5, 2026</span>
+        <span className="text-[11px] text-text-faint">Last synced: {strava.lastSynced || 'Not yet'}</span>
       </div>
     </div>
   )

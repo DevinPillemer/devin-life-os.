@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
 const AppContext = createContext()
 
@@ -216,6 +216,124 @@ export function AppProvider({ children }) {
   })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
+  // ── Strava state ──
+  const [strava, setStrava] = useState({
+    loading: false,
+    error: null,
+    lastSynced: null,
+    activities: [],       // raw activities from API
+    thisWeek: { swims: 0, weights: 0, other: 0, total: 0, earned: 0 },
+    thisMonth: { swims: 0, weights: 0, other: 0, total: 0, earned: 0 },
+    weeklyHistory: [],    // [{ label, swims, weights, earned, highlight }]
+  })
+
+  // Process raw Strava activities into weekly stats
+  const processActivities = useCallback((activities) => {
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const RATE_PER_SESSION = 5
+
+    let weekSwims = 0, weekWeights = 0, weekOther = 0
+    let monthSwims = 0, monthWeights = 0, monthOther = 0
+
+    // Bin activities into ISO weeks for history
+    const weekBins = {}
+
+    for (const act of activities) {
+      const date = new Date(act.start_date || act.start_date_local)
+      const type = (act.type || act.sport_type || '').toLowerCase()
+
+      const isSwim = type === 'swim' || type === 'swimming'
+      const isWeight = type === 'weighttraining' || type === 'weight_training' || type === 'crossfit'
+
+      // This week
+      if (date >= startOfWeek) {
+        if (isSwim) weekSwims++
+        else if (isWeight) weekWeights++
+        else weekOther++
+      }
+
+      // This month
+      if (date >= startOfMonth) {
+        if (isSwim) monthSwims++
+        else if (isWeight) monthWeights++
+        else monthOther++
+      }
+
+      // Weekly history bin (Mon-based ISO week)
+      const weekStart = new Date(date)
+      const day = weekStart.getDay()
+      const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1)
+      weekStart.setDate(diff)
+      weekStart.setHours(0, 0, 0, 0)
+      const key = weekStart.toISOString().split('T')[0]
+
+      if (!weekBins[key]) weekBins[key] = { swims: 0, weights: 0, other: 0 }
+      if (isSwim) weekBins[key].swims++
+      else if (isWeight) weekBins[key].weights++
+      else weekBins[key].other++
+    }
+
+    // Build weekly history sorted newest first, up to 8 weeks
+    const weeklyHistory = Object.entries(weekBins)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .slice(0, 8)
+      .map(([dateStr, counts], i) => {
+        const d = new Date(dateStr)
+        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        const totalSessions = counts.swims + counts.weights + counts.other
+        return {
+          label,
+          swims: counts.swims,
+          weights: counts.weights,
+          earned: totalSessions * RATE_PER_SESSION,
+          highlight: i === 0,
+        }
+      })
+
+    const weekTotal = weekSwims + weekWeights + weekOther
+    const monthTotal = monthSwims + monthWeights + monthOther
+
+    return {
+      thisWeek: { swims: weekSwims, weights: weekWeights, other: weekOther, total: weekTotal, earned: weekTotal * RATE_PER_SESSION },
+      thisMonth: { swims: monthSwims, weights: monthWeights, other: monthOther, total: monthTotal, earned: monthTotal * RATE_PER_SESSION },
+      weeklyHistory,
+    }
+  }, [])
+
+  const fetchStrava = useCallback(async () => {
+    setStrava(prev => ({ ...prev, loading: true, error: null }))
+    try {
+      // Fetch last 60 days of activities
+      const res = await fetch('/api/strava')
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message || `Strava API error ${res.status}`)
+      }
+      const activities = await res.json()
+      const processed = processActivities(activities)
+
+      setStrava(prev => ({
+        ...prev,
+        loading: false,
+        lastSynced: new Date().toLocaleString(),
+        activities,
+        ...processed,
+      }))
+    } catch (err) {
+      setStrava(prev => ({ ...prev, loading: false, error: err.message }))
+    }
+  }, [processActivities])
+
+  // Auto-fetch Strava on mount
+  useEffect(() => {
+    fetchStrava()
+  }, [fetchStrava])
+
   // Notion sync state
   const [notion, setNotion] = useState({
     connected: false, token: null, workspace: null, databases: [],
@@ -308,7 +426,9 @@ export function AppProvider({ children }) {
     notifications, setNotifications,
     sidebarCollapsed, setSidebarCollapsed,
     notion, connectNotion, disconnectNotion, updateDatabaseMapping, syncNow, toggleAutoSync,
-    // New dashboard data
+    // Strava
+    strava, fetchStrava,
+    // Dashboard data
     habitCategories, goalGroups, healthWeeks, walletEarnings,
   }
 
