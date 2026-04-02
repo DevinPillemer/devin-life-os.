@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Home, CheckSquare, Heart, Target, DollarSign, Wallet, BookOpen, Settings, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react'
+import { Home, CheckSquare, Heart, Target, DollarSign, Wallet, BookOpen, Settings, Database, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react'
 import FloopifyLogo from './components/FloopifyLogo'
 import { useApp } from './context/AppContext'
 
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/finance', icon: DollarSign, label: 'Finance' },
   { to: '/wallet', icon: Wallet, label: 'Wallet' },
   { to: '/learning', icon: BookOpen, label: 'Learning' },
+  { to: '/notion', icon: Database, label: 'Notion Sync' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 

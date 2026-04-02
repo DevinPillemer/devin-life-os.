@@ -8,6 +8,7 @@ import FinancialDashboardPage from './pages/FinancialDashboardPage'
 import WalletDashboardPage from './pages/WalletDashboardPage'
 import LearningHubPage from './pages/LearningHubPage'
 import CourseDetailPage from './pages/CourseDetailPage'
+import NotionSyncPage from './pages/NotionSyncPage'
 import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="wallet" element={<WalletDashboardPage />} />
         <Route path="learning" element={<LearningHubPage />} />
         <Route path="learning/:id" element={<CourseDetailPage />} />
+        <Route path="notion" element={<NotionSyncPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

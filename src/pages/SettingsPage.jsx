@@ -1,4 +1,5 @@
-import { User, Sun, Moon, Bell, Download } from 'lucide-react'
+import { User, Sun, Moon, Bell, Download, Database, ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 
 function Toggle({ checked, onChange }) {
@@ -10,7 +11,7 @@ function Toggle({ checked, onChange }) {
 }
 
 export default function SettingsPage() {
-  const { theme, toggleTheme, notifications, setNotifications } = useApp()
+  const { theme, toggleTheme, notifications, setNotifications, notion } = useApp()
 
   const toggleNotif = (key) => {
     setNotifications(prev => ({ ...prev, [key]: !prev[key] }))
@@ -73,6 +74,32 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Notion Integration */}
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h2 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+          <Database size={16} /> Integrations
+        </h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg">📒</div>
+            <div>
+              <p className="text-sm font-medium text-white">Notion</p>
+              <p className="text-xs text-gray-500">
+                {notion.connected
+                  ? `Connected to ${notion.workspace?.name || 'workspace'}`
+                  : 'Not connected'}
+              </p>
+            </div>
+          </div>
+          <Link to="/notion" className="flex items-center gap-1 text-accent text-sm hover:underline">
+            {notion.connected ? 'Manage' : 'Connect'} <ArrowRight size={14} />
+          </Link>
+        </div>
+        {notion.connected && notion.lastSynced && (
+          <p className="text-xs text-gray-600 mt-3">Last synced: {notion.lastSynced}</p>
+        )}
       </div>
 
       {/* Data Export */}

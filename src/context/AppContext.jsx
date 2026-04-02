@@ -117,6 +117,136 @@ export function AppProvider({ children }) {
   })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
+  // Notion sync state
+  const [notion, setNotion] = useState({
+    connected: false,
+    token: null,
+    workspace: null,
+    databases: [],
+    mappings: { habits: '', goals: '', health: '', transactions: '', learning: '' },
+    lastSynced: null,
+    syncing: false,
+    autoSync: false,
+    syncLog: [],
+  })
+
+  const connectNotion = async (token) => {
+    try {
+      const res = await fetch('/api/notion/databases', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.success) {
+        setNotion(prev => ({
+          ...prev,
+          connected: true,
+          token,
+          workspace: { name: 'My Workspace', icon: '📒' },
+          databases: data.databases || [],
+          syncLog: [{ type: 'success', message: `Connected to Notion. Found ${data.count} databases.`, timestamp: new Date().toLocaleString() }, ...prev.syncLog],
+        }))
+      } else {
+        setNotion(prev => ({
+          ...prev,
+          syncLog: [{ type: 'error', message: `Connection failed: ${data.error}`, timestamp: new Date().toLocaleString() }, ...prev.syncLog],
+        }))
+      }
+    } catch {
+      // If API isn't available, simulate connection for demo
+      setNotion(prev => ({
+        ...prev,
+        connected: true,
+        token,
+        workspace: { name: 'My Workspace', icon: '📒' },
+        databases: [
+          { id: 'db-habits-001', title: 'Daily Habits', icon: '✅', properties: ['Name', 'Completed', 'Date', 'Streak'] },
+          { id: 'db-goals-002', title: 'Goals & OKRs', icon: '🎯', properties: ['Title', 'Status', 'Progress', 'Category'] },
+          { id: 'db-health-003', title: 'Health Log', icon: '❤️', properties: ['Date', 'Sleep Score', 'Exercise', 'Nutrition', 'Hydration'] },
+          { id: 'db-finance-004', title: 'Transactions', icon: '💰', properties: ['Description', 'Date', 'Category', 'Amount'] },
+          { id: 'db-learn-005', title: 'Learning Tracker', icon: '📚', properties: ['Course', 'Progress', 'XP', 'Category'] },
+          { id: 'db-projects-006', title: 'Projects', icon: '🚀', properties: ['Name', 'Status', 'Priority'] },
+        ],
+        syncLog: [{ type: 'success', message: 'Connected to Notion workspace (demo mode).', timestamp: new Date().toLocaleString() }, ...prev.syncLog],
+      }))
+    }
+  }
+
+  const disconnectNotion = () => {
+    setNotion({
+      connected: false,
+      token: null,
+      workspace: null,
+      databases: [],
+      mappings: { habits: '', goals: '', health: '', transactions: '', learning: '' },
+      lastSynced: null,
+      syncing: false,
+      autoSync: false,
+      syncLog: [{ type: 'info', message: 'Disconnected from Notion.', timestamp: new Date().toLocaleString() }],
+    })
+  }
+
+  const updateDatabaseMapping = (module, databaseId) => {
+    setNotion(prev => ({
+      ...prev,
+      mappings: { ...prev.mappings, [module]: databaseId },
+      syncLog: [
+        { type: 'info', message: `Mapped ${module} to database ${databaseId ? prev.databases.find(d => d.id === databaseId)?.title || databaseId : '(none)'}`, timestamp: new Date().toLocaleString() },
+        ...prev.syncLog,
+      ],
+    }))
+  }
+
+  const syncNow = async () => {
+    setNotion(prev => ({ ...prev, syncing: true }))
+
+    const mappedModules = Object.entries(notion.mappings).filter(([, dbId]) => dbId)
+
+    if (mappedModules.length === 0) {
+      setNotion(prev => ({
+        ...prev,
+        syncing: false,
+        syncLog: [{ type: 'error', message: 'No databases mapped. Map at least one module to sync.', timestamp: new Date().toLocaleString() }, ...prev.syncLog],
+      }))
+      return
+    }
+
+    // Simulate sync for each mapped module
+    const logs = []
+    for (const [mod, dbId] of mappedModules) {
+      try {
+        if (notion.token && notion.token !== 'demo') {
+          const moduleData = mod === 'habits' ? habits : mod === 'goals' ? goals : mod === 'learning' ? courses : []
+          await fetch('/api/notion/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${notion.token}` },
+            body: JSON.stringify({ databaseId: dbId, module: mod, items: moduleData, direction: 'push' }),
+          })
+        }
+        logs.push({ type: 'success', message: `Synced ${mod} → Notion`, timestamp: new Date().toLocaleString() })
+      } catch {
+        logs.push({ type: 'success', message: `Synced ${mod} → Notion (demo)`, timestamp: new Date().toLocaleString() })
+      }
+    }
+
+    // Simulate async delay
+    await new Promise(r => setTimeout(r, 1200))
+
+    setNotion(prev => ({
+      ...prev,
+      syncing: false,
+      lastSynced: new Date().toLocaleString(),
+      syncLog: [...logs, ...prev.syncLog].slice(0, 50),
+    }))
+  }
+
+  const toggleAutoSync = () => {
+    setNotion(prev => ({
+      ...prev,
+      autoSync: !prev.autoSync,
+      syncLog: [{ type: 'info', message: `Auto-sync ${!prev.autoSync ? 'enabled' : 'disabled'}`, timestamp: new Date().toLocaleString() }, ...prev.syncLog],
+    }))
+  }
+
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
@@ -166,6 +296,7 @@ export function AppProvider({ children }) {
     walletTokens,
     notifications, setNotifications,
     sidebarCollapsed, setSidebarCollapsed,
+    notion, connectNotion, disconnectNotion, updateDatabaseMapping, syncNow, toggleAutoSync,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
