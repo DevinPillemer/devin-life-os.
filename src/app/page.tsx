@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { SWRConfig } from "swr";
+import { SWRConfig, useSWRConfig } from "swr";
 import {
   useFinance,
   useWallet,
@@ -22,7 +22,6 @@ import ActivityFeed from "@/components/ActivityFeed";
 import CommandPalette from "@/components/CommandPalette";
 import { Sun, Moon, Command } from "lucide-react";
 
-// ── Helpers ──
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -46,7 +45,6 @@ function formatDate() {
   });
 }
 
-// ── IntersectionObserver hook for fade-in ──
 function useFadeIn() {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,9 +55,7 @@ function useFadeIn() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-          }
+          if (entry.isIntersecting) entry.target.classList.add("visible");
         });
       },
       { threshold: 0.1 }
@@ -74,14 +70,9 @@ function useFadeIn() {
 
 function FadeSection({ children, id }: { children: React.ReactNode; id?: string }) {
   const ref = useFadeIn();
-  return (
-    <div ref={ref} id={id} className="fade-section">
-      {children}
-    </div>
-  );
+  return <div ref={ref} id={id} className="fade-section">{children}</div>;
 }
 
-// ── Theme toggle ──
 function useTheme() {
   const [dark, setDark] = useState(true);
 
@@ -97,15 +88,9 @@ function useTheme() {
   const toggle = useCallback(() => {
     setDark((prev) => {
       const next = !prev;
-      if (next) {
-        document.documentElement.classList.remove("light");
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        document.documentElement.classList.add("light");
-        localStorage.setItem("theme", "light");
-      }
+      document.documentElement.classList.toggle("dark", next);
+      document.documentElement.classList.toggle("light", !next);
+      localStorage.setItem("theme", next ? "dark" : "light");
       return next;
     });
   }, []);
@@ -113,8 +98,8 @@ function useTheme() {
   return { dark, toggle };
 }
 
-// ── Dashboard Inner (uses SWR hooks) ──
 function DashboardInner() {
+  const { mutate } = useSWRConfig();
   const { finance, financeLoading } = useFinance();
   const { wallet, walletLoading } = useWallet();
   const { habits: habitsData, habitsLoading } = useHabits();
@@ -125,16 +110,14 @@ function DashboardInner() {
 
   const [localHabits, setLocalHabits] = useState<any[]>([]);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [syncingHabits, setSyncingHabits] = useState(false);
+  const [syncingHabitsNotion, setSyncingHabitsNotion] = useState(false);
   const { dark, toggle: toggleTheme } = useTheme();
 
-  // Sync habits from API
   useEffect(() => {
-    if (habitsData?.habits) {
-      setLocalHabits(habitsData.habits);
-    }
+    if (habitsData?.habits) setLocalHabits(habitsData.habits);
   }, [habitsData]);
 
-  // Cmd+K shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -146,51 +129,58 @@ function DashboardInner() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const toggleHabit = (id: number) => {
-    setLocalHabits((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, done: !h.done } : h))
-    );
+  const toggleHabit = (id: number) => setLocalHabits((prev) => prev.map((h) => (h.id === id ? { ...h, done: !h.done } : h)));
+
+  const handleHabitsSync = async () => {
+    setSyncingHabits(true);
+    await mutate("/api/habits");
+    setSyncingHabits(false);
+  };
+
+  const handleNotionSync = async () => {
+    setSyncingHabitsNotion(true);
+    await fetch("/api/habits/sync-notion", { method: "POST" });
+    setSyncingHabitsNotion(false);
   };
 
   const completedCount = localHabits.filter((h) => h.done).length;
   const totalHabits = localHabits.length;
-  const pointsEarned = localHabits
-    .filter((h) => h.done)
-    .reduce((s, h) => s + (h.points || 0), 0);
+  const pointsEarned = localHabits.filter((h) => h.done).reduce((s, h) => s + (h.points || 0), 0);
   const pointsTotal = localHabits.reduce((s, h) => s + (h.points || 0), 0);
+  const walletProgress = wallet?.limit ? Math.min(100, Math.round((wallet.spent / wallet.limit) * 100)) : 0;
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${dark ? "bg-surface-dark" : "bg-slate-50"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        {/* ── Header ── */}
         <header className="mb-8 flex items-start justify-between">
           <div>
             <h1 className={`text-2xl sm:text-3xl font-bold ${dark ? "text-white" : "text-slate-900"}`}>
               {getGreeting()}, <span className="text-accent">Devin</span>
             </h1>
-            <p className={`text-sm mt-1 ${dark ? "text-slate-400" : "text-slate-500"}`}>
-              {formatDate()} · Week {getWeekNumber()}
-            </p>
+            <p className={`text-sm mt-1 ${dark ? "text-slate-400" : "text-slate-500"}`}>{formatDate()} · Week {getWeekNumber()}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCmdOpen(true)}
-              className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-slate-700/50 text-slate-400" : "hover:bg-slate-200 text-slate-500"}`}
-              title="Cmd+K"
-            >
-              <Command size={16} />
-            </button>
-            <button
-              onClick={toggleTheme}
-              className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-slate-700/50 text-slate-400" : "hover:bg-slate-200 text-slate-500"}`}
-              title="Toggle theme"
-            >
-              {dark ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
+            <button onClick={() => setCmdOpen(true)} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-slate-700/50 text-slate-400" : "hover:bg-slate-200 text-slate-500"}`} title="Cmd+K"><Command size={16} /></button>
+            <button onClick={toggleTheme} className={`p-2 rounded-lg transition-colors ${dark ? "hover:bg-slate-700/50 text-slate-400" : "hover:bg-slate-200 text-slate-500"}`} title="Toggle theme">{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
           </div>
         </header>
 
-        {/* ── KPI Cards ── */}
+        <section className="mb-6 rounded-2xl border border-teal-400/20 bg-gradient-to-r from-teal-500/15 via-cyan-500/10 to-violet-500/10 p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-teal-200/80">Daily overview</p>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-white leading-tight">Keep momentum across health, learning, and goals.</h2>
+              <p className="text-sm text-slate-300 mt-1">Wallet progress is synced live from your tracker data.</p>
+            </div>
+            <div className="min-w-[220px]">
+              <div className="flex justify-between text-xs text-slate-300 mb-1"><span>Wallet Progress</span><span>{walletProgress}%</span></div>
+              <div className="h-2.5 rounded-full bg-slate-800/70 overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 shadow-[0_0_16px_rgba(45,212,191,0.55)] transition-all duration-700" style={{ width: `${walletProgress}%` }} />
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div id="section-kpi">
           <KpiCards
             wallet={wallet}
@@ -210,19 +200,9 @@ function DashboardInner() {
           />
         </div>
 
-        {/* ── Calendar Timeline ── */}
-        <FadeSection id="section-calendar">
-          <div className="mb-6">
-            <CalendarTimeline
-              events={calendar?.events || []}
-              loading={calendarLoading}
-            />
-          </div>
-        </FadeSection>
+        <FadeSection id="section-calendar"><div className="mb-6"><CalendarTimeline events={calendar?.events || []} loading={calendarLoading} /></div></FadeSection>
 
-        {/* ── Main Grid ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Col 1: Habits */}
           <div className="space-y-4 sm:space-y-6">
             <FadeSection id="section-habits">
               <HabitsSection
@@ -230,56 +210,35 @@ function DashboardInner() {
                 pointsEarned={pointsEarned}
                 pointsTotal={pointsTotal}
                 loading={habitsLoading}
+                syncing={syncingHabits}
+                syncingNotion={syncingHabitsNotion}
+                onSync={handleHabitsSync}
+                onSyncNotion={handleNotionSync}
+                lastSynced={habitsData?.lastSynced}
                 onToggle={toggleHabit}
               />
             </FadeSection>
           </div>
 
-          {/* Col 2: Finance + Health */}
           <div className="space-y-4 sm:space-y-6">
-            <FadeSection id="section-finance">
-              <FinanceSection finance={finance} loading={financeLoading} />
-            </FadeSection>
-            <FadeSection id="section-health">
-              <HealthSection health={health} loading={healthLoading} />
-            </FadeSection>
+            <FadeSection id="section-finance"><FinanceSection finance={finance} loading={financeLoading} /></FadeSection>
+            <FadeSection id="section-health"><HealthSection health={health} loading={healthLoading} /></FadeSection>
           </div>
 
-          {/* Col 3: Goals + Activity */}
           <div className="space-y-4 sm:space-y-6">
-            <FadeSection id="section-goals">
-              <GoalsSection
-                goals={goalsData?.goals || []}
-                active={goalsData?.active || 0}
-                loading={goalsLoading}
-              />
-            </FadeSection>
-            <FadeSection id="section-activity">
-              <ActivityFeed
-                activities={recentActivity}
-                loading={false}
-              />
-            </FadeSection>
+            <FadeSection id="section-goals"><GoalsSection goals={goalsData?.goals || []} active={goalsData?.active || 0} loading={goalsLoading} lastSynced={goalsData?.lastSynced} /></FadeSection>
+            <FadeSection id="section-activity"><ActivityFeed activities={recentActivity} loading={false} /></FadeSection>
           </div>
         </div>
 
-        {/* ── Footer ── */}
-        <footer className={`mt-10 text-center text-xs ${dark ? "text-slate-600" : "text-slate-400"}`}>
-          Floopify v2 · Built with Next.js, Tailwind & Recharts
-        </footer>
+        <footer className={`mt-10 text-center text-xs ${dark ? "text-slate-600" : "text-slate-400"}`}>Floopify v2 · Built with Next.js, Tailwind & Recharts</footer>
       </div>
 
-      {/* Command palette */}
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
     </div>
   );
 }
 
-// ── Root page wrapping with SWRConfig ──
 export default function Dashboard() {
-  return (
-    <SWRConfig value={{ revalidateOnFocus: false }}>
-      <DashboardInner />
-    </SWRConfig>
-  );
+  return <SWRConfig value={{ revalidateOnFocus: false }}><DashboardInner /></SWRConfig>;
 }

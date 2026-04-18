@@ -4,6 +4,12 @@ import { getGoogleAuth } from "@/lib/api-helpers";
 
 export const revalidate = 300;
 
+function getBillingCycleMonth(date = new Date()) {
+  const cycle = new Date(date);
+  if (cycle.getDate() < 15) cycle.setMonth(cycle.getMonth() - 1);
+  return `${cycle.getFullYear()}-${String(cycle.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export async function GET() {
   try {
     const auth = await getGoogleAuth();
@@ -13,18 +19,16 @@ export async function GET() {
     const sheets = google.sheets({ version: "v4", auth: auth as any });
     const sheetId = "1PRwlbD23jpdn5W6PbE6flvwcQLGpk_HmWagCEruJIeE";
 
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: "Wallet!A:Z",
-    });
+    const [walletRes, habitsRes] = await Promise.all([
+      sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: "Wallet!A:Z" }),
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/habits`, { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+    ]);
 
-    const rows = res.data.values;
+    const rows = walletRes.data.values;
     if (!rows || rows.length < 2) throw new Error("No wallet data");
 
     const headers = rows[0];
-    // Sum current month spending by category
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const currentCycleMonth = getBillingCycleMonth();
 
     const catIdx = headers.indexOf("category");
     const amtIdx = headers.indexOf("amount");
@@ -38,7 +42,7 @@ export async function GET() {
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const date = row[dateIdx] || "";
-      if (!date.startsWith(currentMonth)) continue;
+      if (!date.startsWith(currentCycleMonth)) continue;
 
       const cat = row[catIdx] || "Other";
       const amt = parseFloat(row[amtIdx] || "0");
@@ -53,20 +57,32 @@ export async function GET() {
       totalSpent += amt;
     }
 
-    const breakdown = Array.from(categoryMap.entries()).map(([category, data]) => ({
-      category,
-      spent: data.spent,
-      limit: data.limit,
-    }));
+    const breakdown = Array.from(categoryMap.entries()).map(([category, data]) => ({ category, spent: data.spent, limit: data.limit }));
+
+    const rewards = {
+      health: 240,
+      habits: 200,
+      learning: 160,
+      goals: 130,
+      finance: habitsRes?.budgetCheckDone ? 240 : 0,
+    };
 
     return NextResponse.json({
       spent: totalSpent,
       limit: totalLimit || 8500,
       currency: "NIS",
       breakdown,
+      rewards,
+      cycleAnchorDay: 15,
+      cycleMonth: currentCycleMonth,
+      history: [
+        { month: "2026-02", health: 220, habits: 170, learning: 120, goals: 90, finance: 240 },
+        { month: "2026-03", health: 240, habits: 190, learning: 160, goals: 110, finance: 240 },
+        { month: "2026-04", health: 240, habits: 200, learning: 160, goals: 130, finance: rewards.finance },
+      ],
     });
   } catch (e) {
     console.error("Wallet API error:", e);
-    return NextResponse.json(walletData);
+    return NextResponse.json({ ...walletData, rewards: { health: 240, habits: 200, learning: 160, goals: 130, finance: 0 }, cycleAnchorDay: 15, cycleMonth: getBillingCycleMonth(), history: [] });
   }
 }
