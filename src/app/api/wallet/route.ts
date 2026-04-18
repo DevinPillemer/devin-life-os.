@@ -3,7 +3,9 @@ import { walletData } from "@/lib/mock-data";
 import { getGoogleAuth } from "@/lib/api-helpers";
 import { FALLBACK_SHEET_ID } from "@/lib/finance-sheet";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 function getBillingCycleMonth(date = new Date()) {
   const cycle = new Date(date);
@@ -84,6 +86,20 @@ export async function GET() {
     });
   } catch (e) {
     console.error("Wallet API error:", e);
-    return NextResponse.json({ ...walletData, rewards: { health: 240, habits: 200, learning: 160, goals: 130, finance: 0 }, cycleAnchorDay: 15, cycleMonth: getBillingCycleMonth(), history: [] });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: e instanceof Error ? e.message : "Wallet service unavailable",
+        code: "SERVICE_UNAVAILABLE",
+        data: {
+          ...walletData,
+          rewards: { health: 240, habits: 200, learning: 160, goals: 130, finance: 0 },
+          cycleAnchorDay: 15,
+          cycleMonth: getBillingCycleMonth(),
+          history: [],
+        },
+      },
+      { status: 503 },
+    );
   }
 }
