@@ -19,6 +19,7 @@ function sampleRows(rows: string[][] | undefined, size = 5) {
 export async function GET(request: NextRequest) {
   const debugEnabled = request.nextUrl.searchParams.get("debug") === "1";
   const requestedMonth = request.nextUrl.searchParams.get("month") || undefined;
+  const typeParam = (request.nextUrl.searchParams.get("type") || "all").toLowerCase();
   const spreadsheetId = process.env.GOOGLE_SHEETS_ID || FALLBACK_SHEET_ID;
   let personalRows: string[][] | undefined;
   let familyRows: string[][] | undefined;
@@ -47,8 +48,19 @@ export async function GET(request: NextRequest) {
 
     const personalParsed = parseBudgetSheet(personalRows, requestedMonth);
     const familyParsed = parseBudgetSheet(familyRows, requestedMonth);
+    const selectedSnapshot = typeParam === "personal"
+      ? personalParsed.snapshot
+      : typeParam === "family"
+        ? familyParsed.snapshot
+        : null;
 
     console.error("[finance-api] parse labels", {
+      requestedType: typeParam,
+      selectedExpensesLabel: typeParam === "personal"
+        ? "personal"
+        : typeParam === "family"
+          ? "family"
+          : "combined",
       personal: {
         found: personalParsed.debug.foundLabels,
         missed: personalParsed.debug.missedLabels,
@@ -60,7 +72,12 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      totalNIS: personalParsed.snapshot.endBalance + familyParsed.snapshot.endBalance,
+      totalNIS: selectedSnapshot
+        ? selectedSnapshot.endBalance
+        : personalParsed.snapshot.endBalance + familyParsed.snapshot.endBalance,
+      totalExpensesNIS: selectedSnapshot
+        ? selectedSnapshot.totalExpenses
+        : personalParsed.snapshot.totalExpenses + familyParsed.snapshot.totalExpenses,
       changePercent: 0,
       changeTodayNIS: 0,
       allocation: { stocks: 0, crypto: 0, bonds: 0, cash: 0 },
@@ -73,6 +90,8 @@ export async function GET(request: NextRequest) {
       },
       personal: personalParsed.snapshot,
       family: familyParsed.snapshot,
+      selectedType: typeParam,
+      selected: selectedSnapshot,
       ...(debugEnabled
         ? {
             debug: {
