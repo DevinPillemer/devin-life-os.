@@ -20,7 +20,31 @@ export async function GET(request: NextRequest) {
 
   try {
     const auth = await getGoogleAuth();
-    if (!auth) throw new Error("No Google credentials");
+    if (!auth) {
+      return NextResponse.json({
+        spreadsheetId,
+        requestedMonth: requestedMonth || "latest",
+        personal: {
+          gid: PERSONAL_GID,
+          range: PERSONAL_RANGE,
+          rawRows: [],
+          rawRowsSample: [],
+          detectedMonthColumns: [],
+          detectedLabelRows: { found: [], missed: [] },
+          parsed: null,
+        },
+        family: {
+          gid: FAMILY_GID,
+          range: FAMILY_RANGE,
+          rawRows: [],
+          rawRowsSample: [],
+          detectedMonthColumns: [],
+          detectedLabelRows: { found: [], missed: [] },
+          parsed: null,
+        },
+        warning: "No credentials configured",
+      });
+    }
 
     const { google } = await import("googleapis");
     const sheets = google.sheets({ version: "v4", auth: auth as any });

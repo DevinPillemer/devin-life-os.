@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { learningData } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
     const apiKey = process.env.NOTION_API_KEY;
     const dbId = process.env.NOTION_LEARNING_DB_ID;
-    if (!apiKey || !dbId) throw new Error("No Notion learning credentials");
+    if (!apiKey || !dbId) {
+      return NextResponse.json({ ...learningData, warning: "No credentials configured" });
+    }
 
     const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
       method: "POST",

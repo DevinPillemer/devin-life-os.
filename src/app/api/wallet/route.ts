@@ -16,7 +16,16 @@ function getBillingCycleMonth(date = new Date()) {
 export async function GET() {
   try {
     const auth = await getGoogleAuth();
-    if (!auth) throw new Error("No Google credentials");
+    if (!auth) {
+      return NextResponse.json({
+        ...walletData,
+        rewards: { health: 240, habits: 200, learning: 160, goals: 130, finance: 0 },
+        cycleAnchorDay: 15,
+        cycleMonth: getBillingCycleMonth(),
+        history: [],
+        warning: "No credentials configured",
+      });
+    }
 
     const { google } = await import("googleapis");
     const sheets = google.sheets({ version: "v4", auth: auth as any });

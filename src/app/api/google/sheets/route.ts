@@ -2,13 +2,23 @@ import { NextResponse } from "next/server";
 import { getGoogleAuth } from "@/lib/api-helpers";
 import { FALLBACK_SHEET_ID, parseBudgetSheet } from "@/lib/finance-sheet";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const PERSONAL_RANGE = "'Devin Budget'!A1:Z200";
 const FAMILY_RANGE = "'Joint Budget'!A1:Z200";
 
 export async function GET(request: Request) {
   try {
     const auth = await getGoogleAuth();
-    if (!auth) throw new Error("No Google credentials");
+    if (!auth) {
+      return NextResponse.json({
+        spreadsheetId: process.env.GOOGLE_SHEETS_ID || FALLBACK_SHEET_ID,
+        personal: parseBudgetSheet([], undefined),
+        family: parseBudgetSheet([], undefined),
+        warning: "No credentials configured",
+      });
+    }
 
     const month = new URL(request.url).searchParams.get("month") || undefined;
 
