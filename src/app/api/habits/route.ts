@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { habitsData } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function getIcon(name: string) {
   const lower = name.toLowerCase();
@@ -74,7 +75,14 @@ async function fetchFromHabitify() {
 export async function GET() {
   try {
     const habits = (await fetchFromHabitica()) || (await fetchFromHabitify());
-    if (!habits) throw new Error("No habits provider configured");
+    if (!habits) {
+      return NextResponse.json({
+        ...habitsData,
+        lastSynced: new Date().toISOString(),
+        budgetCheckDone: false,
+        warning: "No credentials configured",
+      });
+    }
 
     const pointsEarned = habits.filter((h: any) => h.done).reduce((s: number, h: any) => s + (h.points || 0), 0);
     const pointsTotal = habits.reduce((s: number, h: any) => s + (h.points || 0), 0);

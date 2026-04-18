@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { stravaData } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 async function getStravaToken(): Promise<string | null> {
   const clientId = process.env.STRAVA_CLIENT_ID;
@@ -43,7 +44,14 @@ function getWeekStart(date = new Date()) {
 export async function GET() {
   try {
     const token = await getStravaToken();
-    if (!token) throw new Error("No Strava token");
+    if (!token) {
+      return NextResponse.json({
+        ...stravaData,
+        weeklyHistory: [],
+        lastSynced: new Date().toISOString(),
+        warning: "No credentials configured",
+      });
+    }
 
     const weekStart = getWeekStart();
     const twelveWeeksAgo = new Date(weekStart);

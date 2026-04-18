@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { calendarEvents } from "@/lib/mock-data";
 import { getGoogleAuth } from "@/lib/api-helpers";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
     const auth = await getGoogleAuth();
     const calendarId = process.env.GOOGLE_CALENDAR_ID;
-    if (!auth || !calendarId) throw new Error("No Google Calendar credentials");
+    if (!auth || !calendarId) {
+      return NextResponse.json({ events: [], warning: "No credentials configured" });
+    }
 
     const { google } = await import("googleapis");
     const calendar = google.calendar({ version: "v3", auth: auth as any });
@@ -50,6 +53,6 @@ export async function GET() {
     return NextResponse.json({ events });
   } catch (e) {
     console.error("Calendar API error:", e);
-    return NextResponse.json({ events: calendarEvents });
+    return NextResponse.json({ events: calendarEvents, warning: "Calendar service unavailable; using fallback events" });
   }
 }

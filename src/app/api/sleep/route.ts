@@ -3,6 +3,9 @@ import { sleepData } from "@/lib/mock-data";
 import { promises as fs } from "fs";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const SLEEP_FILE = path.join(process.cwd(), ".sleep-data.json");
 
 async function readSleepCache() {
@@ -35,7 +38,7 @@ export async function POST(request: Request) {
   try {
     const secret = process.env.APPLE_HEALTH_WEBHOOK_SECRET;
     if (!secret) {
-      return NextResponse.json({ error: "Not configured" }, { status: 500 });
+      return NextResponse.json({ success: false, warning: "No credentials configured" });
     }
 
     const headerSecret = request.headers.get("X-Health-Secret");

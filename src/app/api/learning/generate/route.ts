@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildCourseFromSource } from "@/lib/learning/course-generator";
 import { CourseQuestion, GeneratedCourse, slugifyTitle, upsertCourse } from "@/lib/learning-cache";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface LlmShape {
   title: string;
   objectives: string[];

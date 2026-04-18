@@ -27,7 +27,27 @@ export async function GET(request: NextRequest) {
 
   try {
     const auth = await getGoogleAuth();
-    if (!auth) throw new Error("No Google credentials");
+    if (!auth) {
+      return NextResponse.json({
+        totalNIS: 0,
+        totalExpensesNIS: 0,
+        changePercent: 0,
+        changeTodayNIS: 0,
+        allocation: { stocks: 0, crypto: 0, bonds: 0, cash: 0 },
+        holdings: [],
+        weekTrend: [],
+        spreadsheetId,
+        openSheetLinks: {
+          personal: `${SHEET_URL}?gid=${PERSONAL_GID}#gid=${PERSONAL_GID}`,
+          family: `${SHEET_URL}?gid=${FAMILY_GID}#gid=${FAMILY_GID}`,
+        },
+        personal: { startBalance: 0, endBalance: 0, totalExpenses: 0, budget: 0, burnRate: 0, daysLeft: 0, projectedEnd: 0, topExpenses: [] },
+        family: { startBalance: 0, endBalance: 0, totalExpenses: 0, budget: 0, burnRate: 0, daysLeft: 0, projectedEnd: 0, topExpenses: [] },
+        selectedType: typeParam,
+        selected: null,
+        warning: "No credentials configured",
+      });
+    }
 
     const { google } = await import("googleapis");
     const sheets = google.sheets({ version: "v4", auth: auth as any });

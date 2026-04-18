@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function POST() {
   try {
@@ -9,7 +10,11 @@ export async function POST() {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     if (!apiKey || !dbId) {
-      return NextResponse.json({ ok: false, message: "NOTION_API_KEY or NOTION_HABITS_DB_ID missing" }, { status: 400 });
+      return NextResponse.json({
+        ok: true,
+        syncedAt: null,
+        warning: "No credentials configured",
+      });
     }
 
     const habitsRes = await fetch(`${appUrl}/api/habits`, { cache: "no-store" });
