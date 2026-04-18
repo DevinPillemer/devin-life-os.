@@ -74,7 +74,14 @@ export default function CourseBySlugPage() {
 
         <div className="md:col-span-2 rounded-lg border border-slate-700 bg-slate-900/60 p-4 space-y-4">
           <h2 className="text-xl text-white font-semibold">{course.chapters[chapterIdx].title}</h2>
-          <p className="text-slate-100 whitespace-pre-line">{course.chapters[chapterIdx].teaching}</p>
+          <div className="rounded border border-slate-700 bg-slate-950/40 p-3">
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">Summary</h3>
+            <p className="text-slate-100 whitespace-pre-line">{course.chapters[chapterIdx].summary}</p>
+          </div>
+          <div className="rounded border border-slate-700 bg-slate-950/40 p-3">
+            <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">Key Takeaways</h3>
+            <p className="text-slate-100 whitespace-pre-line">{course.chapters[chapterIdx].teaching}</p>
+          </div>
           <div className="rounded border border-cyan-600/40 bg-cyan-500/10 p-3 text-cyan-100">{course.chapters[chapterIdx].tryThis}</div>
           <LearningQuizPage quiz={course.chapters[chapterIdx].questions || []} onScore={(score) => markSection(chapterIdx, score)} />
         </div>

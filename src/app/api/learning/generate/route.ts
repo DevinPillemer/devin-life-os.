@@ -25,6 +25,11 @@ function validateShape(parsed: any): parsed is LlmShape {
     && Array.isArray(parsed.finalQuiz);
 }
 
+function hasStubContent(parsed: LlmShape) {
+  const chapterTitles = (parsed.chapters || []).map((ch) => String(ch.title || "").toLowerCase());
+  return chapterTitles.some((title) => /^topic\s*\d+/.test(title) || title === "overview");
+}
+
 function llmPrompt(sourceText: string, title?: string, author?: string, category?: string) {
   return `You are generating a serious learning course from source text.
 Return STRICT JSON ONLY with this exact shape:
@@ -100,7 +105,7 @@ export async function POST(req: NextRequest) {
     let base = fallbackBase;
     if (process.env.OPENAI_API_KEY) {
       const llm = await generateWithRetry(sourceText, title, author, category);
-      if (llm) {
+      if (llm && !hasStubContent(llm) && llm.chapters.length >= 4 && llm.chapters.length <= 7) {
         base = {
           ...fallbackBase,
           title: llm.title || fallbackBase.title,
@@ -110,6 +115,8 @@ export async function POST(req: NextRequest) {
           chapters: llm.chapters,
           finalQuiz: llm.finalQuiz?.slice(0, 10) || fallbackBase.finalQuiz,
         };
+      } else {
+        console.warn("[learning.generate] ignoring LLM response due to stub/shape mismatch");
       }
     }
 

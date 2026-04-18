@@ -42,17 +42,17 @@ try {
 
   assert.equal(res.status, 200, JSON.stringify(json));
   assert.equal(json?.course?.slug, "the-daily-laws-by-robert-greene");
-  assert.equal(json?.course?.chapters?.length, 10);
-  assert.ok(/january|life task/i.test(json.course.chapters[0].title));
-  assert.ok(/april|outshine/i.test(json.course.chapters[3].title));
-  assert.ok(/cosmic|december/i.test(json.course.chapters[9].title));
+  assert.ok(json?.course?.chapters?.length >= 4 && json?.course?.chapters?.length <= 7);
+  const chapterTitles = json.course.chapters.map((c) => c.title).join(" ");
+  assert.ok(/power|outshine|rational|life task|social/i.test(chapterTitles), `Unexpected chapter titles: ${chapterTitles}`);
+  assert.ok((json?.course?.finalQuiz || []).length >= 5 && (json?.course?.finalQuiz || []).length <= 8);
+  assert.ok(!/topic\s+\d+/i.test(chapterTitles), `Found stub chapter title in: ${chapterTitles}`);
 
   console.log("daily-laws generator assertions passed", {
     slug: json.course.slug,
     chapters: json.course.chapters.length,
     chapter0: json.course.chapters[0].title,
-    chapter3: json.course.chapters[3].title,
-    chapter9: json.course.chapters[9].title,
+    chapterTitles: json.course.chapters.map((ch) => ch.title),
   });
 } finally {
   dev.kill("SIGTERM");

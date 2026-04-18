@@ -9,6 +9,7 @@ export default function LearningHomePage() {
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
   const [showSeedOnly, setShowSeedOnly] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const loadCourses = async () => {
     const res = await fetch(`/api/learning/course?includeSeed=${showSeedOnly ? "1" : "0"}`, { cache: "no-store" });
@@ -25,6 +26,7 @@ export default function LearningHomePage() {
     existing?: { title?: string; author?: string; category?: string; sourceText?: string },
   ) => {
     setLoading(true);
+    setErrorMsg("");
     const res = await fetch("/api/learning/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -37,23 +39,54 @@ export default function LearningHomePage() {
     });
     const data = await res.json();
     setLoading(false);
-    if (!data?.ok) return alert(data?.message || "Failed to generate");
+    if (!data?.ok) {
+      setErrorMsg(data?.message || "Failed to generate");
+      return;
+    }
     await loadCourses();
     const slug = data?.course?.slug;
-    if (!slug || String(slug).includes("undefined")) return alert("Invalid course slug returned by API.");
+    if (!slug || String(slug).includes("undefined")) {
+      setErrorMsg("Invalid course slug returned by API.");
+      return;
+    }
     window.location.href = `/learning/course/${slug}`;
   };
 
   const generatedCourses = useMemo(() => courses.filter((c) => c.sourceText), [courses]);
+  const learningValues = useMemo(() => Array.from(new Set(seedBooks.map((b) => b.category))), []);
 
   return (
     <main className="min-h-screen bg-surface-dark p-6 space-y-4">
       <h1 className="text-3xl font-bold text-white">Learning Courses</h1>
-      <textarea value={summaryText} onChange={(e) => setSummaryText(e.target.value)} rows={10} className="w-full rounded-lg bg-slate-900 border border-slate-700 p-3 text-slate-100" placeholder="Paste Blinkist summary text here..." />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 space-y-4">
+          <textarea value={summaryText} onChange={(e) => setSummaryText(e.target.value)} rows={10} className="w-full rounded-lg bg-slate-900 border border-slate-700 p-3 text-slate-100" placeholder="Paste Blinkist summary text here..." />
 
-      <div className="flex items-center gap-3">
-        <button disabled={loading || !summaryText.trim()} onClick={() => generate()} className="px-4 py-2 rounded bg-cyan-500 text-slate-950 font-semibold disabled:opacity-50">Generate Course from Text</button>
-        <label className="text-sm text-slate-300 flex items-center gap-2"><input type="checkbox" checked={showSeedOnly} onChange={(e) => setShowSeedOnly(e.target.checked)} /> Show seed-only templates</label>
+          <div className="flex items-center gap-3">
+            <button disabled={loading || !summaryText.trim()} onClick={() => generate()} className="px-4 py-2 rounded bg-cyan-500 text-slate-950 font-semibold disabled:opacity-50">Generate Course from Text</button>
+            <label className="text-sm text-slate-300 flex items-center gap-2"><input type="checkbox" checked={showSeedOnly} onChange={(e) => setShowSeedOnly(e.target.checked)} /> Show seed-only templates</label>
+          </div>
+          {!!errorMsg && <p className="text-sm text-rose-300 border border-rose-500/40 bg-rose-500/10 rounded p-3">{errorMsg}</p>}
+        </div>
+
+        <aside className="rounded-lg border border-slate-700 bg-slate-900/50 p-4 space-y-4 h-fit">
+          <div>
+            <h2 className="text-sm uppercase tracking-wider text-slate-400">Previous books</h2>
+            <ul className="mt-2 space-y-1 text-sm text-slate-200">
+              {seedBooks.slice(0, 8).map((book) => (
+                <li key={book.id}>• {book.title} <span className="text-slate-400">({book.author})</span></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h2 className="text-sm uppercase tracking-wider text-slate-400">Learning values</h2>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {learningValues.map((value) => (
+                <span key={value} className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700">{value}</span>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
 
       <section className="space-y-3">

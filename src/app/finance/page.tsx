@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { useSearchParams } from "next/navigation";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -42,13 +43,23 @@ function BudgetCard({ title, data, openSheet }: { title: string; data: any; open
 }
 
 export default function FinancePage() {
-  const { data, isLoading } = useSWR("/api/finance", fetcher);
+  const params = useSearchParams();
+  const month = params.get("month");
+  const type = params.get("type");
+  const query = new URLSearchParams();
+  if (month) query.set("month", month);
+  if (type) query.set("type", type);
+  const apiUrl = `/api/finance${query.toString() ? `?${query.toString()}` : ""}`;
+  const { data, isLoading } = useSWR(apiUrl, fetcher);
 
   if (isLoading) return <div className="p-6 text-slate-300">Loading finance…</div>;
 
   return (
     <main className="min-h-screen bg-surface-dark p-6 space-y-6">
       <h1 className="text-3xl font-bold text-white">Floopify Finance</h1>
+      <p className="text-sm text-slate-400">
+        Viewing: {type || "all"} {month ? `· month ${month}` : "· latest month"}
+      </p>
       <BudgetCard title="Personal" data={data?.personal} openSheet={data?.openSheetLinks?.personal} />
       <BudgetCard title="Family" data={data?.family} openSheet={data?.openSheetLinks?.family} />
     </main>
