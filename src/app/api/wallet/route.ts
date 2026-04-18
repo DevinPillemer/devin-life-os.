@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { walletData } from "@/lib/mock-data";
 import { getGoogleAuth } from "@/lib/api-helpers";
+import { FALLBACK_SHEET_ID } from "@/lib/finance-sheet";
 
 export const revalidate = 300;
 
@@ -17,7 +18,7 @@ export async function GET() {
 
     const { google } = await import("googleapis");
     const sheets = google.sheets({ version: "v4", auth: auth as any });
-    const sheetId = "1PRwlbD23jpdn5W6PbE6flvwcQLGpk_HmWagCEruJIeE";
+    const sheetId = process.env.GOOGLE_SHEETS_ID || FALLBACK_SHEET_ID;
 
     const [walletRes, habitsRes] = await Promise.all([
       sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: "Wallet!A:Z" }),
