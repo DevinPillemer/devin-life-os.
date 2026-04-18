@@ -91,7 +91,7 @@ async function generateWithRetry(sourceText: string, title?: string, author?: st
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, author, category, summaryText, seed, regenerate, existingSlug } = await req.json();
+    const { title, author, category, summaryText, seed, regenerate } = await req.json();
     const sourceText = String(summaryText || seed || "").trim();
     if (!sourceText) return NextResponse.json({ ok: false, message: "summaryText is required" }, { status: 400 });
 
@@ -115,11 +115,16 @@ export async function POST(req: NextRequest) {
 
     const course: GeneratedCourse = await upsertCourse({
       ...base,
-      slug: existingSlug || base.slug,
+      slug: base.slug,
       courseId: regenerate ? undefined : undefined,
     });
 
-    return NextResponse.json({ ok: true, course });
+    return NextResponse.json({
+      ok: true,
+      course,
+      llmEnhanced: !!process.env.OPENAI_API_KEY,
+      warning: process.env.OPENAI_API_KEY ? undefined : "LLM key missing; returned rule-based course.",
+    });
   } catch (error: any) {
     return NextResponse.json({ ok: false, message: error?.message || "Generation failed" }, { status: 500 });
   }

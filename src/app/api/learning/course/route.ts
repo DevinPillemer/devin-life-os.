@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { awardCourseCompletion, listCourses, markSectionComplete } from "@/lib/learning-cache";
+import { awardCourseCompletion, getCourseById, getCourseBySlug, listCourses, markSectionComplete } from "@/lib/learning-cache";
 import { seedBooks } from "@/lib/learning-seed-books";
 
 export async function GET(req: NextRequest) {
@@ -8,8 +8,7 @@ export async function GET(req: NextRequest) {
   const includeSeed = req.nextUrl.searchParams.get("includeSeed") === "1";
 
   if (courseId || slug) {
-    const all = await listCourses();
-    const course = courseId ? all.find((c) => c.courseId === courseId) : all.find((c) => c.slug === slug);
+    const course = courseId ? await getCourseById(courseId) : await getCourseBySlug(slug);
     if (!course) return NextResponse.json({ ok: false, message: "Course not found" }, { status: 404 });
     return NextResponse.json({ ok: true, course });
   }

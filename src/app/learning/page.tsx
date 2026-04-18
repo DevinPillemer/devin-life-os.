@@ -20,24 +20,28 @@ export default function LearningHomePage() {
     loadCourses();
   }, [showSeedOnly]);
 
-  const generate = async (book?: { id: string; title: string; author: string; category: string }, existingSlug?: string) => {
+  const generate = async (
+    book?: { id: string; title: string; author: string; category: string },
+    existing?: { title?: string; author?: string; category?: string; sourceText?: string },
+  ) => {
     setLoading(true);
     const res = await fetch("/api/learning/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: book?.title,
-        author: book?.author,
-        category: book?.category,
-        summaryText,
-        existingSlug,
+        title: book?.title ?? existing?.title,
+        author: book?.author ?? existing?.author,
+        category: book?.category ?? existing?.category,
+        summaryText: summaryText.trim() || existing?.sourceText || "",
       }),
     });
     const data = await res.json();
     setLoading(false);
     if (!data?.ok) return alert(data?.message || "Failed to generate");
     await loadCourses();
-    window.location.href = `/learning/course/${data.course.slug}`;
+    const slug = data?.course?.slug;
+    if (!slug || String(slug).includes("undefined")) return alert("Invalid course slug returned by API.");
+    window.location.href = `/learning/course/${slug}`;
   };
 
   const generatedCourses = useMemo(() => courses.filter((c) => c.sourceText), [courses]);
@@ -61,7 +65,13 @@ export default function LearningHomePage() {
               <div className="text-slate-400 text-sm">{course.chapters?.length || 0} chapters · Updated {new Date(course.updatedAt).toLocaleString()}</div>
               <div className="mt-3 flex gap-2">
                 <Link href={`/learning/course/${course.slug}`} className="px-3 py-2 rounded bg-cyan-500 text-slate-950 font-semibold">Open</Link>
-                <button disabled={loading} onClick={() => generate(undefined, course.slug)} className="px-3 py-2 rounded bg-amber-400 text-slate-900 font-semibold disabled:opacity-50">Regenerate</button>
+                <button
+                  disabled={loading}
+                  onClick={() => generate(undefined, { title: course.title, author: course.author, category: course.category, sourceText: course.sourceText })}
+                  className="px-3 py-2 rounded bg-amber-400 text-slate-900 font-semibold disabled:opacity-50"
+                >
+                  Regenerate
+                </button>
               </div>
             </div>
           ))}
