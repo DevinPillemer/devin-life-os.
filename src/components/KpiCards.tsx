@@ -142,9 +142,12 @@ export default function KpiCards({
   const goalsAnim = useCountUp(goals?.active || 0);
   const streakAnim = useCountUp(learning?.streakDays || 0);
 
+  const learningReward = wallet?.rewards?.learning ?? wallet?.breakdown?.find((item: any) => String(item.category || "").toLowerCase() === "learning")?.spent ?? 160;
+  const learningRewardAnim = useCountUp(learningReward);
+
   const walletPct = wallet ? Math.round((wallet.spent / wallet.limit) * 100) : 0;
 
-  if (walletLoading && financeLoading) {
+  if (walletLoading && financeLoading && habitsLoading && healthLoading && goalsLoading && learningLoading) {
     return (
       <section className="mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -286,9 +289,10 @@ export default function KpiCards({
             </div>
             <div className="min-w-0">
               <div className="text-lg font-bold text-white tabular-nums leading-tight">
-                {Math.round(streakAnim)}d
+                ₪{Math.round(learningRewardAnim)}
               </div>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Streak</div>
+              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Learning</div>
+              <div className="text-[9px] text-slate-500">{Math.round(streakAnim)} day streak</div>
             </div>
           </div>
         </div>
