@@ -1,10 +1,10 @@
 "use client";
 
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useParams } from "next/navigation";
 
-export default function LegacyCourseIdRedirectPage() {
+function LegacyCourseIdRedirectPageInner() {
   const params = useParams<{ courseId: string }>();
 
   useEffect(() => {
@@ -18,4 +18,12 @@ export default function LegacyCourseIdRedirectPage() {
   }, [params.courseId]);
 
   return <main className="min-h-screen bg-surface-dark p-6 text-slate-100">Redirecting to course slug…</main>;
+}
+
+export default function LegacyCourseIdRedirectPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-surface-dark p-6 text-slate-100">Redirecting to course slug…</main>}>
+      <LegacyCourseIdRedirectPageInner />
+    </Suspense>
+  );
 }

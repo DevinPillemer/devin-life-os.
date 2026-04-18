@@ -1,6 +1,7 @@
 "use client";
 
 
+import { Suspense } from "react";
 import useSWR from "swr";
 import { useSearchParams } from "next/navigation";
 
@@ -43,7 +44,7 @@ function BudgetCard({ title, data, openSheet }: { title: string; data: any; open
   );
 }
 
-export default function FinancePage() {
+function FinancePageInner() {
   const params = useSearchParams();
   const month = params.get("month");
   const type = params.get("type");
@@ -64,5 +65,13 @@ export default function FinancePage() {
       <BudgetCard title="Personal" data={data?.personal} openSheet={data?.openSheetLinks?.personal} />
       <BudgetCard title="Family" data={data?.family} openSheet={data?.openSheetLinks?.family} />
     </main>
+  );
+}
+
+export default function FinancePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-slate-300">Loading finance…</div>}>
+      <FinancePageInner />
+    </Suspense>
   );
 }

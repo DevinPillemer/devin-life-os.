@@ -1,11 +1,11 @@
 "use client";
 
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import LearningQuizPage from "@/components/LearningQuizPage";
 
-export default function CourseBySlugPage() {
+function CourseBySlugPageInner() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const [course, setCourse] = useState<any>(null);
@@ -97,5 +97,13 @@ export default function CourseBySlugPage() {
 
       {finalDone && <p className="text-emerald-200 font-semibold">Certificate count: {course.certificatesAwarded || 0}</p>}
     </main>
+  );
+}
+
+export default function CourseBySlugPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-surface-dark p-6 text-slate-100">Loading…</main>}>
+      <CourseBySlugPageInner />
+    </Suspense>
   );
 }
