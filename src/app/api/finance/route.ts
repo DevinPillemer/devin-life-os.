@@ -4,6 +4,7 @@ import { FALLBACK_SHEET_ID, parseBudgetSheet } from "@/lib/finance-sheet";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 const PERSONAL_GID = "536724729";
 const FAMILY_GID = "1605934772";
@@ -120,7 +121,9 @@ export async function GET(request: NextRequest) {
     console.error("Finance API error:", error);
     return NextResponse.json(
       {
+        ok: false,
         error: message,
+        code: "SERVICE_UNAVAILABLE",
         sheetId: spreadsheetId,
         range: { personal: PERSONAL_RANGE, family: FAMILY_RANGE },
         rawRowsSample: {
@@ -128,7 +131,7 @@ export async function GET(request: NextRequest) {
           family: sampleRows(familyRows),
         },
       },
-      { status: 500 },
+      { status: 503 },
     );
   }
 }
