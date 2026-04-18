@@ -17,7 +17,33 @@ export interface SheetBudgetSnapshot {
   sections: Array<{ label: string; value: number }>;
 }
 
-const norm = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+export interface ParsedBudgetSheet {
+  snapshot: SheetBudgetSnapshot;
+  debug: {
+    requestedMonth: string;
+    selectedMonthLabel: string;
+    monthColumn: number;
+    availableMonths: Array<{ label: string; columnIndex: number }>;
+    foundLabels: string[];
+    missedLabels: string[];
+    labelRowIndexes: Record<string, number>;
+  };
+}
+
+const REQUIRED_LABELS = [
+  "TOTAL EXPENSES",
+  "TOTAL INCOME",
+  "TOTAL CHARITIES",
+  "TOTAL TRANSFERS",
+  "TOTAL LOANS",
+  "TOTAL INVESTMENTS",
+  "Opening Balance",
+  "Live Bank Balance (Actual)",
+  "End Balance",
+  "Net",
+] as const;
+
+const norm = (value: string) => value.toLowerCase().trim();
 
 function toNumber(value?: string) {
   if (!value) return 0;
@@ -26,16 +52,42 @@ function toNumber(value?: string) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function findMonthColumn(rows: string[][]) {
+function resolveMonthColumn(rows: string[][], requestedMonth?: string) {
   const header = rows[1] || [];
-  let idx = -1;
-  for (let i = header.length - 1; i >= 1; i--) {
-    if ((header[i] || "").trim()) {
-      idx = i;
-      break;
+  const availableMonths: Array<{ label: string; columnIndex: number }> = [];
+
+  for (let i = 1; i < header.length; i++) {
+    const label = (header[i] || "").trim();
+    if (label) {
+      availableMonths.push({ label, columnIndex: i });
     }
   }
-  return idx === -1 ? 1 : idx;
+
+  if (!availableMonths.length) {
+    throw new Error("Month header row is empty (expected month names in row 2)");
+  }
+
+  const requested = (requestedMonth || "").trim();
+  if (requested) {
+    const found = availableMonths.find((month) => norm(month.label) === norm(requested));
+    if (!found) {
+      throw new Error(`Requested month '${requested}' was not found in row 2 headers`);
+    }
+    return {
+      requestedMonth: requested,
+      selectedMonthLabel: found.label,
+      monthColumn: found.columnIndex,
+      availableMonths,
+    };
+  }
+
+  const selected = availableMonths[availableMonths.length - 1];
+  return {
+    requestedMonth: selected.label,
+    selectedMonthLabel: selected.label,
+    monthColumn: selected.columnIndex,
+    availableMonths,
+  };
 }
 
 function getRowValue(rowMap: Map<string, string[]>, monthCol: number, ...labels: string[]) {
@@ -46,14 +98,32 @@ function getRowValue(rowMap: Map<string, string[]>, monthCol: number, ...labels:
   return 0;
 }
 
-export function parseBudgetSheet(rows: string[][]): SheetBudgetSnapshot {
-  const monthCol = findMonthColumn(rows);
-  const rowMap = new Map<string, string[]>();
+export function parseBudgetSheet(rows: string[][], requestedMonth?: string): ParsedBudgetSheet {
+  if (!rows.length) {
+    throw new Error("No rows returned from Google Sheets");
+  }
 
-  for (const row of rows) {
+  const monthInfo = resolveMonthColumn(rows, requestedMonth);
+  const rowMap = new Map<string, string[]>();
+  const labelRowIndexes: Record<string, number> = {};
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
     const label = (row[0] || "").trim();
     if (!label) continue;
-    rowMap.set(norm(label), row);
+    const normalized = norm(label);
+    rowMap.set(normalized, row);
+    labelRowIndexes[normalized] = rowIndex + 1;
+  }
+
+  const foundLabels: string[] = [];
+  const missedLabels: string[] = [];
+  for (const label of REQUIRED_LABELS) {
+    if (rowMap.has(norm(label))) {
+      foundLabels.push(label);
+    } else {
+      missedLabels.push(label);
+    }
   }
 
   const ccLabels = [
@@ -72,26 +142,36 @@ export function parseBudgetSheet(rows: string[][]): SheetBudgetSnapshot {
   ];
 
   const snapshot: SheetBudgetSnapshot = {
-    monthLabel: rows[1]?.[monthCol] || "",
-    billingPeriod: rows[2]?.[monthCol] || "",
-    openingBalance: getRowValue(rowMap, monthCol, "Opening Balance"),
-    liveBankBalanceActual: getRowValue(rowMap, monthCol, "Live Bank Balance (Actual)", "Live Bank Balance Actual"),
-    endBalance: getRowValue(rowMap, monthCol, "End Balance"),
-    totalIncome: getRowValue(rowMap, monthCol, "TOTAL INCOME", "Total Income"),
-    totalExpenses: getRowValue(rowMap, monthCol, "TOTAL EXPENSES", "Total CC Expenses"),
-    totalCharities: getRowValue(rowMap, monthCol, "TOTAL CHARITIES", "Total Charities"),
-    totalTransfers: getRowValue(rowMap, monthCol, "TOTAL TRANSFERS", "Total Transfers"),
-    totalInvestments: getRowValue(rowMap, monthCol, "TOTAL INVESTMENTS"),
-    totalLoans: getRowValue(rowMap, monthCol, "TOTAL LOANS", "Total Loans"),
-    totalContributions: getRowValue(rowMap, monthCol, "TOTAL CONTRIBUTIONS"),
-    ccExpenses: ccLabels.map((label) => ({ label, value: getRowValue(rowMap, monthCol, label) })),
+    monthLabel: monthInfo.selectedMonthLabel,
+    billingPeriod: rows[2]?.[monthInfo.monthColumn] || "",
+    openingBalance: getRowValue(rowMap, monthInfo.monthColumn, "Opening Balance"),
+    liveBankBalanceActual: getRowValue(rowMap, monthInfo.monthColumn, "Live Bank Balance (Actual)", "Live Bank Balance Actual"),
+    endBalance: getRowValue(rowMap, monthInfo.monthColumn, "End Balance"),
+    totalIncome: getRowValue(rowMap, monthInfo.monthColumn, "TOTAL INCOME", "Total Income"),
+    totalExpenses: getRowValue(rowMap, monthInfo.monthColumn, "TOTAL EXPENSES", "Total CC Expenses"),
+    totalCharities: getRowValue(rowMap, monthInfo.monthColumn, "TOTAL CHARITIES", "Total Charities"),
+    totalTransfers: getRowValue(rowMap, monthInfo.monthColumn, "TOTAL TRANSFERS", "Total Transfers"),
+    totalInvestments: getRowValue(rowMap, monthInfo.monthColumn, "TOTAL INVESTMENTS"),
+    totalLoans: getRowValue(rowMap, monthInfo.monthColumn, "TOTAL LOANS", "Total Loans"),
+    totalContributions: getRowValue(rowMap, monthInfo.monthColumn, "TOTAL CONTRIBUTIONS"),
+    ccExpenses: ccLabels.map((label) => ({ label, value: getRowValue(rowMap, monthInfo.monthColumn, label) })),
     sections: [],
   };
 
-  snapshot.sections = Array.from(rowMap.entries())
-    .map(([key, row]) => ({ key, label: row[0] || "", value: toNumber(row[monthCol]) }))
-    .filter((r) => r.value !== 0 && !r.key.includes("apr") && !r.key.includes("may"))
-    .map(({ label, value }) => ({ label, value }));
+  snapshot.sections = Array.from(rowMap.values())
+    .map((row) => ({ label: row[0] || "", value: toNumber(row[monthInfo.monthColumn]) }))
+    .filter((row) => row.value !== 0);
 
-  return snapshot;
+  return {
+    snapshot,
+    debug: {
+      requestedMonth: monthInfo.requestedMonth,
+      selectedMonthLabel: monthInfo.selectedMonthLabel,
+      monthColumn: monthInfo.monthColumn,
+      availableMonths: monthInfo.availableMonths,
+      foundLabels,
+      missedLabels,
+      labelRowIndexes,
+    },
+  };
 }

@@ -5,7 +5,6 @@ import {
   stravaData,
   notionGoals,
   calendarEvents,
-  financeData,
   learningData,
   sleepData,
 } from "./mock-data";
@@ -19,7 +18,6 @@ const fetcher = (url: string) =>
 export function useFinance() {
   const { data, error, isLoading } = useSWR("/api/finance", fetcher, {
     refreshInterval: 300_000,
-    fallbackData: financeData,
   });
   return { finance: data, financeError: error, financeLoading: isLoading };
 }
