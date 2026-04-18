@@ -77,23 +77,6 @@ export const calendarEvents = [
   { title: "Gym", start: "17:00", end: "18:00", color: "#22c55e" },
 ];
 
-export const financeData = {
-  totalNIS: 142850,
-  changePercent: 1.24,
-  changeTodayNIS: 1748,
-  allocation: {
-    stocks: 55,
-    crypto: 20,
-    bonds: 15,
-    cash: 10,
-  },
-  holdings: [
-    { name: "S&P 500 ETF", value: 48200, changePercent: 1.8 },
-    { name: "Bitcoin", value: 22400, changePercent: 3.2 },
-    { name: "Tesla", value: 12050, changePercent: -0.6 },
-  ],
-  weekTrend: [140200, 141100, 140800, 141500, 142200, 142850, 142850],
-};
 
 export const recentActivity = [
   { id: 1, action: "Completed morning meditation", type: "habit", time: "07:15", icon: "check-circle" },
