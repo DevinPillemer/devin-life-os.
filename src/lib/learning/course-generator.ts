@@ -1,6 +1,11 @@
 import { CourseChapter, CourseGlossaryTerm, CourseQuestion, GeneratedCourse, slugifyTitle } from "@/lib/learning-cache";
 
-const MONTH_PATTERN = /^(january|february|march|april|may|june|july|august|september|october|november|december)\b/i;
+const MONTH_NAMES = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+const MONTH_OR_FINAL_HEADING = new RegExp(`^(${MONTH_NAMES.join("|")})\\b|^final\\s+summary\\b`, "i");
 const TERM_PATTERN = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3}|Life Task|Apprenticeship(?:\s+Phase)?|Mastery|Inside|Coquette|Cosmic Sublime|Tactical hell)\b/g;
 
 export interface CourseGenInput {
@@ -23,33 +28,63 @@ function extractTitle(text: string, fallback?: string) {
   return fallback || firstNonEmptyLine(text);
 }
 
-function looksLikeHeading(line: string) {
-  return MONTH_PATTERN.test(line)
-    || /^chapter\s*\d+/i.test(line)
+function looksLikeGenericHeading(line: string) {
+  return /^chapter\s*\d+/i.test(line)
     || /^\d+[\.)]\s+/.test(line)
     || /^##\s+/.test(line)
-    || /^final summary/i.test(line)
     || (/^[A-Z][^.!?]{3,90}$/.test(line) && line.split(" ").length <= 12);
 }
 
-function splitRealChapters(sourceText: string) {
-  const lines = sourceText.split(/\r?\n/).map((l) => l.trim());
+function splitByMonthAndFinal(lines: string[]) {
   const chapters: Array<{ title: string; content: string[] }> = [];
   let current: { title: string; content: string[] } | null = null;
 
-  for (const line of lines) {
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
     if (!line) continue;
-    if (looksLikeHeading(line)) {
+
+    if (MONTH_OR_FINAL_HEADING.test(line)) {
+      if (current && current.content.length) chapters.push(current);
+      current = { title: line.replace(/^##\s+/, ""), content: [] };
+      continue;
+    }
+
+    if (!current) continue;
+    current.content.push(line);
+  }
+
+  if (current && current.content.length) chapters.push(current);
+  return chapters;
+}
+
+function splitByGenericHeadings(lines: string[]) {
+  const chapters: Array<{ title: string; content: string[] }> = [];
+  let current: { title: string; content: string[] } | null = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (looksLikeGenericHeading(line)) {
       if (current && current.content.length) chapters.push(current);
       current = { title: line.replace(/^##\s+/, "").replace(/^\d+[\.)]\s*/, ""), content: [] };
       continue;
     }
+
     if (!current) current = { title: "Overview", content: [] };
     current.content.push(line);
   }
-  if (current && current.content.length) chapters.push(current);
 
-  return chapters.filter((c) => c.title && c.content.join(" ").length > 10);
+  if (current && current.content.length) chapters.push(current);
+  return chapters;
+}
+
+function splitRealChapters(sourceText: string) {
+  const lines = sourceText.split(/\r?\n/).map((l) => l.trim());
+  const monthSplit = splitByMonthAndFinal(lines);
+  const base = monthSplit.length >= 3 ? monthSplit : splitByGenericHeadings(lines);
+
+  return base.filter((c) => c.title && c.content.join(" ").length > 10);
 }
 
 function summarizeParagraphs(content: string[]) {
@@ -60,7 +95,7 @@ function summarizeParagraphs(content: string[]) {
     teaching: [
       sentences.slice(0, 3).join(" "),
       sentences.slice(3, 6).join(" "),
-      `Notice the pattern: this chapter rewards patience, social awareness, and repeated practice over flashy one-off performance.`,
+      "Notice the pattern: this chapter rewards patience, social awareness, and repeated practice over flashy one-off performance.",
     ].filter(Boolean).join("\n\n"),
   };
 }
@@ -76,7 +111,8 @@ function chapterQuestionStyle(title: string) {
 function buildQuestions(title: string, content: string[]): CourseQuestion[] {
   const style = chapterQuestionStyle(title);
   const source = content.join(" ");
-  const fact = content[0] || "the chapter text";
+  const first = content[0] || "the chapter text";
+  const second = content[1] || first;
 
   const baseMcPrompt = style === "scenario"
     ? `Scenario: A coworker feels threatened by your contribution. According to ${title}, what should you do first?`
@@ -93,14 +129,14 @@ function buildQuestions(title: string, content: string[]): CourseQuestion[] {
         "Publicly challenge authority",
       ],
       answer: "Map the power dynamics and adapt your delivery",
-      explanation: `Supported by source section details: ${fact}`,
+      explanation: `Section detail: ${first}`,
     },
     {
       type: "true_false",
       prompt: `${title} argues that mastery comes from long-term repetition and strategic patience.`,
       options: ["True", "False"],
       answer: "True",
-      explanation: `The source repeatedly emphasizes progressive development and practice.`,
+      explanation: `The text emphasizes progressive development and consistent practice.`,
     },
     {
       type: "multiple_choice",
@@ -119,8 +155,8 @@ function buildQuestions(title: string, content: string[]): CourseQuestion[] {
       prompt: style === "reflective"
         ? `In 3-4 sentences, connect ${title} to one moment in your life where you needed a wider perspective.`
         : `In 2-3 sentences, explain how you would apply ${title} this week at work or school.`,
-      answer: "Open response",
-      explanation: `Reference a concrete sentence from the source: ${source.slice(0, 160)}...`,
+      answer: `Use the section's concrete example: ${second.slice(0, 120)}...`,
+      explanation: `Answer should reference at least one named example or sentence from the section.`,
     },
   ];
 }
@@ -139,14 +175,24 @@ function extractGlossary(sourceText: string): CourseGlossaryTerm[] {
     .slice(0, 12)
     .map(([term]) => term);
 
-  return topTerms.map((term) => ({
+  const glossary = topTerms.map((term) => ({
     term,
-    definition: `In this source, ${term} refers to a recurring principle or character example used to teach strategic growth and mastery.`,
+    definition: `In this source, ${term} is a recurring concept or character example used to teach strategic growth and mastery.`,
   }));
+
+  return glossary.length >= 6 ? glossary : [
+    ...glossary,
+    { term: "Life Task", definition: "A long-horizon direction that organizes learning and effort." },
+    { term: "Apprenticeship", definition: "A phase of skill-building through repetition and feedback." },
+    { term: "Mastery", definition: "The compound result of persistent practice and adaptive strategy." },
+    { term: "Social Intelligence", definition: "Reading context, incentives, and power dynamics before acting." },
+    { term: "Outshine", definition: "A warning against creating insecurity in those with authority." },
+    { term: "Cosmic Sublime", definition: "A mindset that expands perspective beyond short-term ego battles." },
+  ].slice(0, 12);
 }
 
 function buildObjectives(chapters: CourseChapter[]) {
-  return chapters.slice(0, 5).map((chapter) => `Apply "${chapter.title}" by translating its main lesson into one concrete weekly behavior.`);
+  return chapters.slice(0, 5).map((chapter) => `Apply \"${chapter.title}\" by translating its main lesson into one concrete weekly behavior.`);
 }
 
 export function buildCourseFromSource(input: CourseGenInput): Omit<GeneratedCourse, "createdAt" | "updatedAt" | "courseId"> {
@@ -163,7 +209,7 @@ export function buildCourseFromSource(input: CourseGenInput): Omit<GeneratedCour
       summary,
       teaching,
       tryThis: `Try this: For the next 48 hours, run one deliberate experiment based on "${ch.title}" and log what changed.`,
-      questions: buildQuestions(ch.title, ch.content),
+      questions: buildQuestions(ch.title, ch.content).slice(0, 5),
     };
   });
 

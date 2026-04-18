@@ -62,9 +62,12 @@ async function readStore(): Promise<LearningStore> {
   await ensureStore();
   const raw = await fs.readFile(STORE_PATH, "utf8");
   const parsed = JSON.parse(raw || "{}");
-  return {
+  const store = {
     courses: Array.isArray(parsed.courses) ? parsed.courses : [],
   };
+  const cleaned = purgeLegacyUndefinedCoursesFromStore(store);
+  if (cleaned.removed > 0) await writeStore(cleaned.store);
+  return cleaned.store;
 }
 
 async function writeStore(store: LearningStore) {
@@ -79,6 +82,27 @@ export function slugifyTitle(input: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return cleaned || "untitled-course";
+}
+
+function isLegacyUndefinedCourse(course: GeneratedCourse) {
+  const slug = String(course.slug || "");
+  const courseId = String(course.courseId || "");
+  return slug.includes("undefined-micro-course")
+    || slug.endsWith("-undefined")
+    || courseId.includes("undefined-micro-course")
+    || slug === "undefined";
+}
+
+function purgeLegacyUndefinedCoursesFromStore(store: LearningStore) {
+  const courses = store.courses.filter((course) => !isLegacyUndefinedCourse(course));
+  return { store: { courses }, removed: store.courses.length - courses.length };
+}
+
+export async function purgeLegacyUndefinedCourses() {
+  const store = await readStore();
+  const cleaned = purgeLegacyUndefinedCoursesFromStore(store);
+  if (cleaned.removed > 0) await writeStore(cleaned.store);
+  return { removed: cleaned.removed };
 }
 
 export async function upsertCourse(course: Omit<GeneratedCourse, "createdAt" | "updatedAt" | "courseId"> & { courseId?: string }) {
