@@ -1,153 +1,125 @@
-import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { GeneratedCourse, getCourseByKey, saveCourse } from "@/lib/learning-cache";
+import { buildCourseFromSource } from "@/lib/learning/course-generator";
+import { CourseQuestion, GeneratedCourse, slugifyTitle, upsertCourse } from "@/lib/learning-cache";
 
-const VALUES = ["growth", "family", "faith", "financial freedom", "health", "leadership"];
-
-function topicQuizStyle(category = "") {
-  const c = category.toLowerCase();
-  if (c.includes("lead")) return "Prioritize scenario-based leadership decisions and Both-And tradeoffs.";
-  if (c.includes("philos")) return "Prioritize conceptual and argument-analysis questions.";
-  if (c.includes("finance")) return "Include numerical and practical money-application questions.";
-  return "Blend conceptual, practical, and scenario questions.";
-}
-
-function splitChapters(input: string) {
-  const lines = input.split(/\r?\n/).map((l) => l.trim());
-  const chapters: Array<{ title: string; body: string }> = [];
-  let current: { title: string; body: string[] } | null = null;
-
-  for (const line of lines) {
-    if (!line) continue;
-    if (/^(chapter\s*\d+|\d+[\).]|final summary|summary|key idea|blink\s*\d+)/i.test(line) || /^[A-Z][^.!?]{4,80}$/.test(line)) {
-      if (current) chapters.push({ title: current.title, body: current.body.join("\n") });
-      current = { title: line.replace(/^\d+[\).]\s*/, ""), body: [] };
-    } else if (current) {
-      current.body.push(line);
-    }
-  }
-  if (current) chapters.push({ title: current.title, body: current.body.join("\n") });
-  return chapters.length ? chapters : [{ title: "Main Ideas", body: input }];
-}
-
-function promptForCourse({ title, author, category, sourceText }: { title: string; author?: string; category?: string; sourceText: string }) {
-  const chapterHints = splitChapters(sourceText).map((c) => c.title).join(", ");
-  return `Create a deeply tailored chapter-by-chapter course.
-Book: ${title}${author ? ` by ${author}` : ""}
-Category: ${category || "General"}
-User values (soft context only): ${VALUES.join(", ")}
-Inferred chapter headings: ${chapterHints}
-Quiz style directive: ${topicQuizStyle(category)}
-
-SOURCE TEXT START
-${sourceText}
-SOURCE TEXT END
-
-Return strict JSON with this exact schema:
-{
-  "title": "string",
-  "chapters": [
-    {
-      "title": "string",
-      "learn": [
-        {"concept":"bold term words", "explanation":"teach the concept from source", "example":"concrete source-grounded example"}
-      ],
-      "reflect": ["open ended question", "open ended question"],
-      "optionalValueReflection": "single optional question tied to one user value",
-      "quiz": [
-        {"type":"multiple_choice|scenario|true_false","question":"string","options":["..."],"correctAnswer":"string","explanation":"reference source chapter details"}
-      ]
-    }
-  ]
-}
-Rules:
-- Preserve chapter structure from source.
-- Each chapter needs 4-6 learn items, 1-2 reflect questions, 5 quiz questions.
-- No boilerplate. No generic summaries. Teach with source-grounded detail.
-- For true_false, include two options exactly: ["True","False"].`;
-}
-
-async function callModel(prompt: string) {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
-
-  if (anthropicKey) {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 8000,
-        temperature: 0.3,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (!resp.ok) throw new Error(`Anthropic failed: ${await resp.text()}`);
-    const data = await resp.json();
-    return data.content?.[0]?.text || "{}";
-  }
-
-  if (openaiKey) {
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openaiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        temperature: 0.3,
-        response_format: { type: "json_object" },
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (!resp.ok) throw new Error(`OpenAI failed: ${await resp.text()}`);
-    const data = await resp.json();
-    return data.choices?.[0]?.message?.content || "{}";
-  }
-
-  throw new Error("No AI API key configured");
+interface LlmShape {
+  title: string;
+  objectives: string[];
+  glossary: Array<{ term: string; definition: string }>;
+  chapters: Array<{ title: string; summary: string; teaching: string; tryThis: string; questions: CourseQuestion[] }>;
+  finalQuiz: CourseQuestion[];
 }
 
 function parseJson(raw: string) {
   const fenced = raw.match(/```json\s*([\s\S]*?)```/i);
-  const cleaned = fenced ? fenced[1] : raw;
-  return JSON.parse(cleaned);
+  return JSON.parse(fenced ? fenced[1] : raw);
+}
+
+function validateShape(parsed: any): parsed is LlmShape {
+  return !!parsed
+    && typeof parsed.title === "string"
+    && Array.isArray(parsed.objectives)
+    && Array.isArray(parsed.glossary)
+    && Array.isArray(parsed.chapters)
+    && parsed.chapters.every((ch: any) => typeof ch.title === "string" && Array.isArray(ch.questions))
+    && Array.isArray(parsed.finalQuiz);
+}
+
+function llmPrompt(sourceText: string, title?: string, author?: string, category?: string) {
+  return `You are generating a serious learning course from source text.
+Return STRICT JSON ONLY with this exact shape:
+{"title":"...","objectives":["..."],"glossary":[{"term":"...","definition":"..."}],"chapters":[{"title":"...","summary":"...","teaching":"2-4 paragraphs with concrete anecdotes from source","tryThis":"...","questions":[{"type":"multiple_choice|true_false|short_answer","prompt":"...","options":["..."],"answer":"...","explanation":"must cite source details"}]}],"finalQuiz":[{"type":"multiple_choice|true_false|short_answer","prompt":"...","options":["..."],"answer":"...","explanation":"..."}]}
+Hard requirements:
+- Use REAL chapter boundaries from source: month names, numbered headings, "Chapter N", markdown headings, blank separated sections, and "Final summary".
+- Do not output placeholder chapter names like Topic 1.
+- Provide 3-5 questions per chapter with mixed types; MC must have exactly 4 options and exactly one correct answer.
+- Questions must be section-specific with answer explanations anchored to source text.
+- Ensure title is never undefined.
+Context:
+Title hint: ${title || ""}
+Author hint: ${author || ""}
+Category hint: ${category || ""}
+Full source text:
+${sourceText}`;
+}
+
+async function callModel(prompt: string) {
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (!openaiKey) return null;
+
+  const model = process.env.LEARNING_MODEL || "gpt-4o-mini";
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openaiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`OpenAI failed: ${errorText}`);
+  }
+
+  const data = await res.json();
+  const inTokens = data.usage?.prompt_tokens ?? 0;
+  const outTokens = data.usage?.completion_tokens ?? 0;
+  console.log(`[learning.generate] model=${model} tokens_in=${inTokens} tokens_out=${outTokens}`);
+  return data.choices?.[0]?.message?.content || null;
+}
+
+async function generateWithRetry(sourceText: string, title?: string, author?: string, category?: string) {
+  const prompt = llmPrompt(sourceText, title, author, category);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const raw = await callModel(prompt);
+    if (!raw) return null;
+    try {
+      const parsed = parseJson(raw);
+      if (validateShape(parsed)) return parsed;
+    } catch {
+      // retry once
+    }
+  }
+  throw new Error("Model returned invalid course JSON. Please retry with clearer source text.");
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { bookId = "ad-hoc", title = "Custom Course", author, category, summaryText, seed, regenerate } = await req.json();
-    const sourceText = (summaryText || seed || "").trim();
-    if (!sourceText && !title) return NextResponse.json({ ok: false, message: "summaryText or title is required" }, { status: 400 });
+    const { title, author, category, summaryText, seed, regenerate, existingSlug } = await req.json();
+    const sourceText = String(summaryText || seed || "").trim();
+    if (!sourceText) return NextResponse.json({ ok: false, message: "summaryText is required" }, { status: 400 });
 
-    const hash = crypto.createHash("sha256").update(`${bookId}|${title}|${author || ""}|${category || ""}|${sourceText}`).digest("hex").slice(0, 16);
-    const cacheKey = `${bookId}:${hash}`;
+    const fallbackBase = buildCourseFromSource({ title, author, category, sourceText });
 
-    if (!regenerate) {
-      const cached = getCourseByKey(cacheKey);
-      if (cached) return NextResponse.json({ ok: true, course: cached, cached: true });
+    let base = fallbackBase;
+    if (process.env.OPENAI_API_KEY) {
+      const llm = await generateWithRetry(sourceText, title, author, category);
+      if (llm) {
+        base = {
+          ...fallbackBase,
+          title: llm.title || fallbackBase.title,
+          slug: slugifyTitle(llm.title || fallbackBase.title),
+          objectives: llm.objectives,
+          glossary: llm.glossary,
+          chapters: llm.chapters,
+          finalQuiz: llm.finalQuiz?.slice(0, 10) || fallbackBase.finalQuiz,
+        };
+      }
     }
 
-    const prompt = promptForCourse({ title, author, category, sourceText: sourceText || `Generate seed course for ${title} by ${author || "Unknown"}.` });
-    const raw = await callModel(prompt);
-    const parsed = parseJson(raw);
+    const course: GeneratedCourse = await upsertCourse({
+      ...base,
+      slug: existingSlug || base.slug,
+      courseId: regenerate ? undefined : undefined,
+    });
 
-    const course: GeneratedCourse = {
-      courseId: `${bookId}-${Date.now()}`,
-      bookId,
-      title: parsed.title || title,
-      author,
-      category,
-      chapters: parsed.chapters || [],
-    };
-
-    saveCourse(cacheKey, course);
-    return NextResponse.json({ ok: true, course, cached: false });
+    return NextResponse.json({ ok: true, course });
   } catch (error: any) {
     return NextResponse.json({ ok: false, message: error?.message || "Generation failed" }, { status: 500 });
   }
